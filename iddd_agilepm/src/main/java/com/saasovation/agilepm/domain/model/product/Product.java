@@ -38,345 +38,252 @@ import com.saasovation.common.domain.model.DomainEventPublisher;
 
 public class Product extends Entity {
 
-    private Set<ProductBacklogItem> backlogItems;
-    private String description;
-    private ProductDiscussion discussion;
-    private String discussionInitiationId;
-    private String name;
-    private ProductId productId;
-    private ProductOwnerId productOwnerId;
-    private TenantId tenantId;
+	private Set<ProductBacklogItem> backlogItems;
+	private String description;
+	private ProductDiscussion discussion;
+	private String discussionInitiationId;
+	private String name;
+	private ProductId productId;
+	private ProductOwnerId productOwnerId;
+	private TenantId tenantId;
 
-    public Product(
-            TenantId aTenantId,
-            ProductId aProductId,
-            ProductOwnerId aProductOwnerId,
-            String aName,
-            String aDescription,
-            DiscussionAvailability aDiscussionAvailability) {
+	public Product(TenantId aTenantId, ProductId aProductId, ProductOwnerId aProductOwnerId, String aName,
+			String aDescription, DiscussionAvailability aDiscussionAvailability) {
 
-        this();
+		this();
 
-        this.setTenantId(aTenantId); // must precede productOwnerId for compare
-        this.setDescription(aDescription);
-        this.setDiscussion(ProductDiscussion.fromAvailability(aDiscussionAvailability));
-        this.setDiscussionInitiationId(null);
-        this.setName(aName);
-        this.setProductId(aProductId);
-        this.setProductOwnerId(aProductOwnerId);
+		this.setTenantId(aTenantId); // must precede productOwnerId for compare
+		this.setDescription(aDescription);
+		this.setDiscussion(ProductDiscussion.fromAvailability(aDiscussionAvailability));
+		this.setDiscussionInitiationId(null);
+		this.setName(aName);
+		this.setProductId(aProductId);
+		this.setProductOwnerId(aProductOwnerId);
 
-        DomainEventPublisher
-            .instance()
-            .publish(new ProductCreated(
-                    this.tenantId(),
-                    this.productId(),
-                    this.productOwnerId(),
-                    this.name(),
-                    this.description(),
-                    this.discussion().availability().isRequested()));
-    }
+		DomainEventPublisher.instance()
+				.publish(new ProductCreated(this.tenantId(), this.productId(), this.productOwnerId(), this.name(),
+						this.description(), this.discussion().availability().isRequested()));
+	}
 
-    public Set<ProductBacklogItem> allBacklogItems() {
-        return Collections.unmodifiableSet(this.backlogItems());
-    }
+	public Set<ProductBacklogItem> allBacklogItems() {
+		return Collections.unmodifiableSet(this.backlogItems());
+	}
 
-    public void changeProductOwner(ProductOwner aProductOwner) {
-        if (!this.productOwnerId().equals(aProductOwner.productOwnerId())) {
-            this.setProductOwnerId(aProductOwner.productOwnerId());
+	public void changeProductOwner(ProductOwner aProductOwner) {
+		if (!this.productOwnerId().equals(aProductOwner.productOwnerId())) {
+			this.setProductOwnerId(aProductOwner.productOwnerId());
 
-            // TODO: publish event
-        }
-    }
+			// TODO: publish event
+		}
+	}
 
-    public String description() {
-        return this.description;
-    }
+	public String description() {
+		return this.description;
+	}
 
-    public ProductDiscussion discussion() {
-        return this.discussion;
-    }
+	public ProductDiscussion discussion() {
+		return this.discussion;
+	}
 
-    public String discussionInitiationId() {
-        return this.discussionInitiationId;
-    }
+	public String discussionInitiationId() {
+		return this.discussionInitiationId;
+	}
 
-    public void failDiscussionInitiation() {
-        if (!this.discussion().availability().isReady()) {
-            this.setDiscussionInitiationId(null);
-            this.setDiscussion(
-                    ProductDiscussion
-                        .fromAvailability(
-                                DiscussionAvailability.FAILED));
-        }
-    }
+	public void failDiscussionInitiation() {
+		if (!this.discussion().availability().isReady()) {
+			this.setDiscussionInitiationId(null);
+			this.setDiscussion(ProductDiscussion.fromAvailability(DiscussionAvailability.FAILED));
+		}
+	}
 
-    public void initiateDiscussion(DiscussionDescriptor aDescriptor) {
-        if (aDescriptor == null) {
-            throw new IllegalArgumentException("The descriptor must not be null.");
-        }
+	public void initiateDiscussion(DiscussionDescriptor aDescriptor) {
+		if (aDescriptor == null) {
+			throw new IllegalArgumentException("The descriptor must not be null.");
+		}
 
-        if (this.discussion().availability().isRequested()) {
-            this.setDiscussion(this.discussion().nowReady(aDescriptor));
+		if (this.discussion().availability().isRequested()) {
+			this.setDiscussion(this.discussion().nowReady(aDescriptor));
 
-            DomainEventPublisher
-                .instance()
-                .publish(new ProductDiscussionInitiated(
-                        this.tenantId(),
-                        this.productId(),
-                        this.discussion()));
-        }
-    }
+			DomainEventPublisher.instance()
+					.publish(new ProductDiscussionInitiated(this.tenantId(), this.productId(), this.discussion()));
+		}
+	}
 
-    public String name() {
-        return this.name;
-    }
+	public String name() {
+		return this.name;
+	}
 
-    public BacklogItem planBacklogItem(
-            BacklogItemId aNewBacklogItemId,
-            String aSummary,
-            String aCategory,
-            BacklogItemType aType,
-            StoryPoints aStoryPoints) {
+	public BacklogItem planBacklogItem(BacklogItemId aNewBacklogItemId, String aSummary, String aCategory,
+			BacklogItemType aType, StoryPoints aStoryPoints) {
 
-        BacklogItem backlogItem =
-            new BacklogItem(
-                    this.tenantId(),
-                    this.productId(),
-                    aNewBacklogItemId,
-                    aSummary,
-                    aCategory,
-                    aType,
-                    BacklogItemStatus.PLANNED,
-                    aStoryPoints);
+		BacklogItem backlogItem = new BacklogItem(this.tenantId(), this.productId(), aNewBacklogItemId, aSummary,
+				aCategory, aType, BacklogItemStatus.PLANNED, aStoryPoints);
 
-        DomainEventPublisher
-            .instance()
-            .publish(new ProductBacklogItemPlanned(
-                    backlogItem.tenantId(),
-                    backlogItem.productId(),
-                    backlogItem.backlogItemId(),
-                    backlogItem.summary(),
-                    backlogItem.category(),
-                    backlogItem.type(),
-                    backlogItem.storyPoints()));
+		DomainEventPublisher.instance()
+				.publish(new ProductBacklogItemPlanned(backlogItem.tenantId(), backlogItem.productId(),
+						backlogItem.backlogItemId(), backlogItem.summary(), backlogItem.category(), backlogItem.type(),
+						backlogItem.storyPoints()));
 
-        return backlogItem;
-    }
+		return backlogItem;
+	}
 
-    public void plannedProductBacklogItem(BacklogItem aBacklogItem) {
-        this.assertArgumentEquals(this.tenantId(), aBacklogItem.tenantId(), "The product and backlog item must have same tenant.");
-        this.assertArgumentEquals(this.productId(), aBacklogItem.productId(), "The backlog item must belong to product.");
+	public void plannedProductBacklogItem(BacklogItem aBacklogItem) {
+		this.assertArgumentEquals(this.tenantId(), aBacklogItem.tenantId(),
+				"The product and backlog item must have same tenant.");
+		this.assertArgumentEquals(this.productId(), aBacklogItem.productId(),
+				"The backlog item must belong to product.");
 
-        int ordering = this.backlogItems().size() + 1;
+		int ordering = this.backlogItems().size() + 1;
 
-        ProductBacklogItem productBacklogItem =
-                new ProductBacklogItem(
-                        this.tenantId(),
-                        this.productId(),
-                        aBacklogItem.backlogItemId(),
-                        ordering);
+		ProductBacklogItem productBacklogItem = new ProductBacklogItem(this.tenantId(), this.productId(),
+				aBacklogItem.backlogItemId(), ordering);
 
-        this.backlogItems().add(productBacklogItem);
-    }
+		this.backlogItems().add(productBacklogItem);
+	}
 
-    public ProductId productId() {
-        return this.productId;
-    }
+	public ProductId productId() {
+		return this.productId;
+	}
 
-    public ProductOwnerId productOwnerId() {
-        return this.productOwnerId;
-    }
+	public ProductOwnerId productOwnerId() {
+		return this.productOwnerId;
+	}
 
-    public void reorderFrom(BacklogItemId anId, int anOrdering) {
-        for (ProductBacklogItem productBacklogItem : this.backlogItems()) {
-            productBacklogItem.reorderFrom(anId, anOrdering);
-        }
-    }
+	public void reorderFrom(BacklogItemId anId, int anOrdering) {
+		for (ProductBacklogItem productBacklogItem : this.backlogItems()) {
+			productBacklogItem.reorderFrom(anId, anOrdering);
+		}
+	}
 
-    public void requestDiscussion(DiscussionAvailability aDiscussionAvailability) {
-        if (!this.discussion().availability().isReady()) {
-            this.setDiscussion(
-                    ProductDiscussion.fromAvailability(
-                            aDiscussionAvailability));
+	public void requestDiscussion(DiscussionAvailability aDiscussionAvailability) {
+		if (!this.discussion().availability().isReady()) {
+			this.setDiscussion(ProductDiscussion.fromAvailability(aDiscussionAvailability));
 
-            DomainEventPublisher
-                .instance()
-                .publish(new ProductDiscussionRequested(
-                        this.tenantId(),
-                        this.productId(),
-                        this.productOwnerId(),
-                        this.name(),
-                        this.description(),
-                        this.discussion().availability().isRequested()));
-        }
-    }
+			DomainEventPublisher.instance()
+					.publish(new ProductDiscussionRequested(this.tenantId(), this.productId(), this.productOwnerId(),
+							this.name(), this.description(), this.discussion().availability().isRequested()));
+		}
+	}
 
-    public Release scheduleRelease(
-            ReleaseId aNewReleaseId,
-            String aName,
-            String aDescription,
-            Date aBegins,
-            Date anEnds) {
+	public Release scheduleRelease(ReleaseId aNewReleaseId, String aName, String aDescription, Date aBegins,
+			Date anEnds) {
 
-        Release release =
-            new Release(
-                    this.tenantId(),
-                    this.productId(),
-                    aNewReleaseId,
-                    aName,
-                    aDescription,
-                    aBegins,
-                    anEnds);
+		Release release = new Release(this.tenantId(), this.productId(), aNewReleaseId, aName, aDescription, aBegins,
+				anEnds);
 
-        DomainEventPublisher
-            .instance()
-            .publish(new ProductReleaseScheduled(
-                    release.tenantId(),
-                    release.productId(),
-                    release.releaseId(),
-                    release.name(),
-                    release.description(),
-                    release.begins(),
-                    release.ends()));
+		DomainEventPublisher.instance().publish(new ProductReleaseScheduled(release.tenantId(), release.productId(),
+				release.releaseId(), release.name(), release.description(), release.begins(), release.ends()));
 
-        return release;
-    }
+		return release;
+	}
 
-    public Sprint scheduleSprint(
-            SprintId aNewSprintId,
-            String aName,
-            String aGoals,
-            Date aBegins,
-            Date anEnds) {
+	public Sprint scheduleSprint(SprintId aNewSprintId, String aName, String aGoals, Date aBegins, Date anEnds) {
 
-        Sprint sprint =
-            new Sprint(
-                    this.tenantId(),
-                    this.productId(),
-                    aNewSprintId,
-                    aName,
-                    aGoals,
-                    aBegins,
-                    anEnds);
+		Sprint sprint = new Sprint(this.tenantId(), this.productId(), aNewSprintId, aName, aGoals, aBegins, anEnds);
 
-        DomainEventPublisher
-            .instance()
-            .publish(new ProductSprintScheduled(
-                    sprint.tenantId(),
-                    sprint.productId(),
-                    sprint.sprintId(),
-                    sprint.name(),
-                    sprint.goals(),
-                    sprint.begins(),
-                    sprint.ends()));
+		DomainEventPublisher.instance().publish(new ProductSprintScheduled(sprint.tenantId(), sprint.productId(),
+				sprint.sprintId(), sprint.name(), sprint.goals(), sprint.begins(), sprint.ends()));
 
-        return sprint;
-    }
+		return sprint;
+	}
 
-    public void startDiscussionInitiation(String aDiscussionInitiationId) {
-        if (!this.discussion().availability().isReady()) {
-            this.setDiscussionInitiationId(aDiscussionInitiationId);
-        }
-    }
+	public void startDiscussionInitiation(String aDiscussionInitiationId) {
+		if (!this.discussion().availability().isReady()) {
+			this.setDiscussionInitiationId(aDiscussionInitiationId);
+		}
+	}
 
-    public TenantId tenantId() {
-        return this.tenantId;
-    }
+	public TenantId tenantId() {
+		return this.tenantId;
+	}
 
-    @Override
-    public boolean equals(Object anObject) {
-        boolean equalObjects = false;
+	@Override
+	public boolean equals(Object anObject) {
+		boolean equalObjects = false;
 
-        if (anObject != null && this.getClass() == anObject.getClass()) {
-            Product typedObject = (Product) anObject;
-            equalObjects =
-                this.tenantId().equals(typedObject.tenantId()) &&
-                this.productId().equals(typedObject.productId());
-        }
+		if (anObject != null && this.getClass() == anObject.getClass()) {
+			Product typedObject = (Product) anObject;
+			equalObjects = this.tenantId().equals(typedObject.tenantId())
+					&& this.productId().equals(typedObject.productId());
+		}
 
-        return equalObjects;
-    }
+		return equalObjects;
+	}
 
-    @Override
-    public int hashCode() {
-        int hashCodeValue =
-            + (2335 * 3)
-            + this.tenantId().hashCode()
-            + this.productId().hashCode();
+	@Override
+	public int hashCode() {
+		int hashCodeValue = +(2335 * 3) + this.tenantId().hashCode() + this.productId().hashCode();
 
-        return hashCodeValue;
-    }
+		return hashCodeValue;
+	}
 
-    @Override
-    public String toString() {
-        return "Product [tenantId=" + tenantId + ", productId=" + productId
-                + ", backlogItems=" + backlogItems + ", description="
-                + description + ", discussion=" + discussion
-                + ", discussionInitiationId=" + discussionInitiationId
-                + ", name=" + name + ", productOwnerId=" + productOwnerId + "]";
-    }
+	@Override
+	public String toString() {
+		return "Product [tenantId=" + tenantId + ", productId=" + productId + ", backlogItems=" + backlogItems
+				+ ", description=" + description + ", discussion=" + discussion + ", discussionInitiationId="
+				+ discussionInitiationId + ", name=" + name + ", productOwnerId=" + productOwnerId + "]";
+	}
 
-    private Product() {
-        super();
+	private Product() {
+		super();
 
-        this.setBacklogItems(new HashSet<ProductBacklogItem>(0));
-    }
+		this.setBacklogItems(new HashSet<ProductBacklogItem>(0));
+	}
 
-    private Set<ProductBacklogItem> backlogItems() {
-        return this.backlogItems;
-    }
+	private Set<ProductBacklogItem> backlogItems() {
+		return this.backlogItems;
+	}
 
-    private void setBacklogItems(Set<ProductBacklogItem> backlogItems) {
-        this.backlogItems = backlogItems;
-    }
+	private void setBacklogItems(Set<ProductBacklogItem> backlogItems) {
+		this.backlogItems = backlogItems;
+	}
 
-    private void setDescription(String aDescription) {
-        this.assertArgumentNotEmpty(aDescription, "The description must be provided.");
-        this.assertArgumentLength(aDescription, 500, "Description must be 500 characters or less.");
+	private void setDescription(String aDescription) {
+		this.assertArgumentNotEmpty(aDescription, "The description must be provided.");
+		this.assertArgumentLength(aDescription, 500, "Description must be 500 characters or less.");
 
-        this.description = aDescription;
-    }
+		this.description = aDescription;
+	}
 
-    private void setDiscussion(ProductDiscussion aDiscussion) {
-        this.assertArgumentNotNull(aDiscussion, "The discussion is required even if it is unused.");
+	private void setDiscussion(ProductDiscussion aDiscussion) {
+		this.assertArgumentNotNull(aDiscussion, "The discussion is required even if it is unused.");
 
-        this.discussion = aDiscussion;
-    }
+		this.discussion = aDiscussion;
+	}
 
-    private void setDiscussionInitiationId(String aDiscussionInitiationId) {
-        if (aDiscussionInitiationId != null) {
-            this.assertArgumentLength(
-                    aDiscussionInitiationId,
-                    100,
-                    "Discussion initiation identity must be 100 characters or less.");
-        }
+	private void setDiscussionInitiationId(String aDiscussionInitiationId) {
+		if (aDiscussionInitiationId != null) {
+			this.assertArgumentLength(aDiscussionInitiationId, 100,
+					"Discussion initiation identity must be 100 characters or less.");
+		}
 
-        this.discussionInitiationId = aDiscussionInitiationId;
-    }
+		this.discussionInitiationId = aDiscussionInitiationId;
+	}
 
-    private void setName(String aName) {
-        this.assertArgumentNotEmpty(aName, "The name must be provided.");
-        this.assertArgumentLength(aName, 100, "The name must be 100 characters or less.");
+	private void setName(String aName) {
+		this.assertArgumentNotEmpty(aName, "The name must be provided.");
+		this.assertArgumentLength(aName, 100, "The name must be 100 characters or less.");
 
-        this.name = aName;
-    }
+		this.name = aName;
+	}
 
-    private void setProductId(ProductId aProductId) {
-        this.assertArgumentNotNull(aProductId, "The productId must be provided.");
+	private void setProductId(ProductId aProductId) {
+		this.assertArgumentNotNull(aProductId, "The productId must be provided.");
 
-        this.productId = aProductId;
-    }
+		this.productId = aProductId;
+	}
 
-    private void setProductOwnerId(ProductOwnerId aProductOwnerId) {
-        this.assertArgumentNotNull(aProductOwnerId, "The productOwnerId must be provided.");
-        this.assertArgumentEquals(this.tenantId(), aProductOwnerId.tenantId(), "The productOwner must have the same tenant.");
+	private void setProductOwnerId(ProductOwnerId aProductOwnerId) {
+		this.assertArgumentNotNull(aProductOwnerId, "The productOwnerId must be provided.");
+		this.assertArgumentEquals(this.tenantId(), aProductOwnerId.tenantId(),
+				"The productOwner must have the same tenant.");
 
-        this.productOwnerId = aProductOwnerId;
-    }
+		this.productOwnerId = aProductOwnerId;
+	}
 
-    private void setTenantId(TenantId aTenantId) {
-        this.assertArgumentNotNull(aTenantId, "The tenantId must be provided.");
+	private void setTenantId(TenantId aTenantId) {
+		this.assertArgumentNotNull(aTenantId, "The tenantId must be provided.");
 
-        this.tenantId = aTenantId;
-    }
+		this.tenantId = aTenantId;
+	}
 }

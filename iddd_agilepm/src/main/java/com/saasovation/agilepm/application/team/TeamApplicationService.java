@@ -23,221 +23,174 @@ import com.saasovation.agilepm.domain.model.tenant.TenantId;
 
 public class TeamApplicationService {
 
-    private ProductOwnerRepository productOwnerRepository;
-    private TeamMemberRepository teamMemberRepository;
+	private ProductOwnerRepository productOwnerRepository;
+	private TeamMemberRepository teamMemberRepository;
 
-    public TeamApplicationService(
-            TeamMemberRepository aTeamMemberRepository,
-            ProductOwnerRepository aProductOwnerRepository) {
+	public TeamApplicationService(TeamMemberRepository aTeamMemberRepository,
+			ProductOwnerRepository aProductOwnerRepository) {
 
-        super();
+		super();
 
-        this.productOwnerRepository = aProductOwnerRepository;
-        this.teamMemberRepository = aTeamMemberRepository;
-    }
+		this.productOwnerRepository = aProductOwnerRepository;
+		this.teamMemberRepository = aTeamMemberRepository;
+	}
 
-    public void enableProductOwner(EnableProductOwnerCommand aCommand) {
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+	public void enableProductOwner(EnableProductOwnerCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		ApplicationServiceLifeCycle.begin();
 
-        try {
-            ProductOwner productOwner =
-                    this.productOwnerRepository.productOwnerOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+		try {
+			ProductOwner productOwner = this.productOwnerRepository.productOwnerOfIdentity(tenantId,
+					aCommand.getUsername());
 
-            if (productOwner != null) {
-                productOwner.enable(aCommand.getOccurredOn());
-            } else {
-                productOwner =
-                        new ProductOwner(
-                                tenantId,
-                                aCommand.getUsername(),
-                                aCommand.getFirstName(),
-                                aCommand.getLastName(),
-                                aCommand.getEmailAddress(),
-                                aCommand.getOccurredOn());
+			if (productOwner != null) {
+				productOwner.enable(aCommand.getOccurredOn());
+			} else {
+				productOwner = new ProductOwner(tenantId, aCommand.getUsername(), aCommand.getFirstName(),
+						aCommand.getLastName(), aCommand.getEmailAddress(), aCommand.getOccurredOn());
 
-                this.productOwnerRepository().save(productOwner);
+				this.productOwnerRepository().save(productOwner);
 
-                ApplicationServiceLifeCycle.success();
-            }
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+				ApplicationServiceLifeCycle.success();
+			}
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-    public void enableTeamMember(EnableTeamMemberCommand aCommand) {
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+	public void enableTeamMember(EnableTeamMemberCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		ApplicationServiceLifeCycle.begin();
 
-        try {
-            TeamMember teamMember =
-                    this.teamMemberRepository.teamMemberOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+		try {
+			TeamMember teamMember = this.teamMemberRepository.teamMemberOfIdentity(tenantId, aCommand.getUsername());
 
-            if (teamMember != null) {
-                teamMember.enable(aCommand.getOccurredOn());
-            } else {
-                teamMember =
-                        new TeamMember(
-                                tenantId,
-                                aCommand.getUsername(),
-                                aCommand.getFirstName(),
-                                aCommand.getLastName(),
-                                aCommand.getEmailAddress(),
-                                aCommand.getOccurredOn());
+			if (teamMember != null) {
+				teamMember.enable(aCommand.getOccurredOn());
+			} else {
+				teamMember = new TeamMember(tenantId, aCommand.getUsername(), aCommand.getFirstName(),
+						aCommand.getLastName(), aCommand.getEmailAddress(), aCommand.getOccurredOn());
 
-                this.teamMemberRepository().save(teamMember);
-            }
+				this.teamMemberRepository().save(teamMember);
+			}
 
-            ApplicationServiceLifeCycle.success();
+			ApplicationServiceLifeCycle.success();
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-    public void changeTeamMemberEmailAddress(ChangeTeamMemberEmailAddressCommand aCommand) {
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+	public void changeTeamMemberEmailAddress(ChangeTeamMemberEmailAddressCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		ApplicationServiceLifeCycle.begin();
 
-        try {
-            ProductOwner productOwner =
-                    this.productOwnerRepository.productOwnerOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+		try {
+			ProductOwner productOwner = this.productOwnerRepository.productOwnerOfIdentity(tenantId,
+					aCommand.getUsername());
 
-            if (productOwner != null) {
-                productOwner
-                    .changeEmailAddress(
-                        aCommand.getEmailAddress(),
-                        aCommand.getOccurredOn());
+			if (productOwner != null) {
+				productOwner.changeEmailAddress(aCommand.getEmailAddress(), aCommand.getOccurredOn());
 
-                this.productOwnerRepository().save(productOwner);
-            }
+				this.productOwnerRepository().save(productOwner);
+			}
 
-            TeamMember teamMember =
-                    this.teamMemberRepository.teamMemberOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+			TeamMember teamMember = this.teamMemberRepository.teamMemberOfIdentity(tenantId, aCommand.getUsername());
 
-            if (teamMember != null) {
-                teamMember
-                    .changeEmailAddress(
-                            aCommand.getEmailAddress(),
-                            aCommand.getOccurredOn());
+			if (teamMember != null) {
+				teamMember.changeEmailAddress(aCommand.getEmailAddress(), aCommand.getOccurredOn());
 
-                this.teamMemberRepository().save(teamMember);
-            }
+				this.teamMemberRepository().save(teamMember);
+			}
 
-            ApplicationServiceLifeCycle.success();
+			ApplicationServiceLifeCycle.success();
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-    public void changeTeamMemberName(ChangeTeamMemberNameCommand aCommand) {
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+	public void changeTeamMemberName(ChangeTeamMemberNameCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		ApplicationServiceLifeCycle.begin();
 
-        try {
-            ProductOwner productOwner =
-                    this.productOwnerRepository.productOwnerOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+		try {
+			ProductOwner productOwner = this.productOwnerRepository.productOwnerOfIdentity(tenantId,
+					aCommand.getUsername());
 
-            if (productOwner != null) {
-                productOwner
-                    .changeName(
-                            aCommand.getFirstName(),
-                            aCommand.getLastName(),
-                            aCommand.getOccurredOn());
+			if (productOwner != null) {
+				productOwner.changeName(aCommand.getFirstName(), aCommand.getLastName(), aCommand.getOccurredOn());
 
-                this.productOwnerRepository().save(productOwner);
-            }
+				this.productOwnerRepository().save(productOwner);
+			}
 
-            TeamMember teamMember =
-                    this.teamMemberRepository.teamMemberOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+			TeamMember teamMember = this.teamMemberRepository.teamMemberOfIdentity(tenantId, aCommand.getUsername());
 
-            if (teamMember != null) {
-                teamMember
-                    .changeName(
-                            aCommand.getFirstName(),
-                            aCommand.getLastName(),
-                            aCommand.getOccurredOn());
+			if (teamMember != null) {
+				teamMember.changeName(aCommand.getFirstName(), aCommand.getLastName(), aCommand.getOccurredOn());
 
-                this.teamMemberRepository().save(teamMember);
-            }
+				this.teamMemberRepository().save(teamMember);
+			}
 
-            ApplicationServiceLifeCycle.success();
+			ApplicationServiceLifeCycle.success();
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-    public void disableProductOwner(DisableProductOwnerCommand aCommand) {
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+	public void disableProductOwner(DisableProductOwnerCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		ApplicationServiceLifeCycle.begin();
 
-        try {
-            ProductOwner productOwner =
-                    this.productOwnerRepository.productOwnerOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+		try {
+			ProductOwner productOwner = this.productOwnerRepository.productOwnerOfIdentity(tenantId,
+					aCommand.getUsername());
 
-            if (productOwner != null) {
-                productOwner.disable(aCommand.getOccurredOn());
+			if (productOwner != null) {
+				productOwner.disable(aCommand.getOccurredOn());
 
-                this.productOwnerRepository().save(productOwner);
-            }
+				this.productOwnerRepository().save(productOwner);
+			}
 
-            ApplicationServiceLifeCycle.success();
+			ApplicationServiceLifeCycle.success();
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-    public void disableTeamMember(DisableTeamMemberCommand aCommand) {
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+	public void disableTeamMember(DisableTeamMemberCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		ApplicationServiceLifeCycle.begin();
 
-        try {
-            TeamMember teamMember =
-                    this.teamMemberRepository.teamMemberOfIdentity(
-                            tenantId,
-                            aCommand.getUsername());
+		try {
+			TeamMember teamMember = this.teamMemberRepository.teamMemberOfIdentity(tenantId, aCommand.getUsername());
 
-            if (teamMember != null) {
-                teamMember.disable(aCommand.getOccurredOn());
+			if (teamMember != null) {
+				teamMember.disable(aCommand.getOccurredOn());
 
-                this.teamMemberRepository().save(teamMember);
-            }
+				this.teamMemberRepository().save(teamMember);
+			}
 
-            ApplicationServiceLifeCycle.success();
+			ApplicationServiceLifeCycle.success();
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-    private ProductOwnerRepository productOwnerRepository() {
-        return this.productOwnerRepository;
-    }
+	private ProductOwnerRepository productOwnerRepository() {
+		return this.productOwnerRepository;
+	}
 
-    private TeamMemberRepository teamMemberRepository() {
-        return this.teamMemberRepository;
-    }
+	private TeamMemberRepository teamMemberRepository() {
+		return this.teamMemberRepository;
+	}
 }
