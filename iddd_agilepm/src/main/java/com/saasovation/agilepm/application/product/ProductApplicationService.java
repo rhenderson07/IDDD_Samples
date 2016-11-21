@@ -32,282 +32,223 @@ import com.saasovation.common.domain.model.process.TimeConstrainedProcessTracker
 
 public class ProductApplicationService {
 
-    private TimeConstrainedProcessTrackerRepository processTrackerRepository;
-    private ProductOwnerRepository productOwnerRepository;
-    private ProductRepository productRepository;
+	private TimeConstrainedProcessTrackerRepository processTrackerRepository;
+	private ProductOwnerRepository productOwnerRepository;
+	private ProductRepository productRepository;
 
-    public ProductApplicationService(
-            ProductRepository aProductRepository,
-            ProductOwnerRepository aProductOwnerRepository,
-            TimeConstrainedProcessTrackerRepository aProcessTrackerRepository) {
+	public ProductApplicationService(ProductRepository aProductRepository,
+			ProductOwnerRepository aProductOwnerRepository,
+			TimeConstrainedProcessTrackerRepository aProcessTrackerRepository) {
 
-        super();
-
-        this.processTrackerRepository = aProcessTrackerRepository;
-        this.productOwnerRepository = aProductOwnerRepository;
-        this.productRepository = aProductRepository;
-    }
-
-    // TODO: additional APIs / student assignment
-
-    public void initiateDiscussion(InitiateDiscussionCommand aCommand) {
-        ApplicationServiceLifeCycle.begin();
+		super();
 
-        try {
-            Product product =
-                    this.productRepository()
-                        .productOfId(
-                                new TenantId(aCommand.getTenantId()),
-                                new ProductId(aCommand.getProductId()));
-
-            if (product == null) {
-                throw new IllegalStateException(
-                        "Unknown product of tenant id: "
-                        + aCommand.getTenantId()
-                        + " and product id: "
-                        + aCommand.getProductId());
-            }
-
-            product.initiateDiscussion(new DiscussionDescriptor(aCommand.getDiscussionId()));
-
-            this.productRepository().save(product);
-
-            ProcessId processId = ProcessId.existingProcessId(product.discussionInitiationId());
-
-            TimeConstrainedProcessTracker tracker =
-                    this.processTrackerRepository()
-                        .trackerOfProcessId(aCommand.getTenantId(), processId);
-
-            tracker.completed();
-
-            this.processTrackerRepository().save(tracker);
-
-            ApplicationServiceLifeCycle.success();
-
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
-
-    public String newProduct(NewProductCommand aCommand) {
-
-        return this.newProductWith(
-                aCommand.getTenantId(),
-                aCommand.getProductOwnerId(),
-                aCommand.getName(),
-                aCommand.getDescription(),
-                DiscussionAvailability.NOT_REQUESTED);
-    }
-
-    public String newProductWithDiscussion(NewProductCommand aCommand) {
+		this.processTrackerRepository = aProcessTrackerRepository;
+		this.productOwnerRepository = aProductOwnerRepository;
+		this.productRepository = aProductRepository;
+	}
 
-        return this.newProductWith(
-                aCommand.getTenantId(),
-                aCommand.getProductOwnerId(),
-                aCommand.getName(),
-                aCommand.getDescription(),
-                this.requestDiscussionIfAvailable());
-    }
+	// TODO: additional APIs / student assignment
 
-    public void requestProductDiscussion(RequestProductDiscussionCommand aCommand) {
-        Product product =
-                this.productRepository()
-                    .productOfId(
-                            new TenantId(aCommand.getTenantId()),
-                            new ProductId(aCommand.getProductId()));
+	public void initiateDiscussion(InitiateDiscussionCommand aCommand) {
+		ApplicationServiceLifeCycle.begin();
 
-        if (product == null) {
-            throw new IllegalStateException(
-                    "Unknown product of tenant id: "
-                    + aCommand.getTenantId()
-                    + " and product id: "
-                    + aCommand.getProductId());
-        }
+		try {
+			Product product = this.productRepository().productOfId(new TenantId(aCommand.getTenantId()),
+					new ProductId(aCommand.getProductId()));
 
-        this.requestProductDiscussionFor(product);
-    }
+			if (product == null) {
+				throw new IllegalStateException("Unknown product of tenant id: " + aCommand.getTenantId()
+						+ " and product id: " + aCommand.getProductId());
+			}
 
-    public void retryProductDiscussionRequest(RetryProductDiscussionRequestCommand aCommand) {
+			product.initiateDiscussion(new DiscussionDescriptor(aCommand.getDiscussionId()));
 
-        ProcessId processId = ProcessId.existingProcessId(aCommand.getProcessId());
+			this.productRepository().save(product);
 
-        TenantId tenantId = new TenantId(aCommand.getTenantId());
+			ProcessId processId = ProcessId.existingProcessId(product.discussionInitiationId());
 
-        Product product =
-                this.productRepository()
-                    .productOfDiscussionInitiationId(
-                            tenantId,
-                            processId.id());
+			TimeConstrainedProcessTracker tracker = this.processTrackerRepository()
+					.trackerOfProcessId(aCommand.getTenantId(), processId);
 
-        if (product == null) {
-            throw new IllegalStateException(
-                    "Unknown product of tenant id: "
-                    + aCommand.getTenantId()
-                    + " and discussion initiation id: "
-                    + processId.id());
-        }
+			tracker.completed();
 
-        this.requestProductDiscussionFor(product);
-    }
+			this.processTrackerRepository().save(tracker);
 
-    public void startDiscussionInitiation(StartDiscussionInitiationCommand aCommand) {
+			ApplicationServiceLifeCycle.success();
 
-        ApplicationServiceLifeCycle.begin();
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-        try {
-            Product product =
-                    this.productRepository()
-                        .productOfId(
-                                new TenantId(aCommand.getTenantId()),
-                                new ProductId(aCommand.getProductId()));
+	public String newProduct(NewProductCommand aCommand) {
 
-            if (product == null) {
-                throw new IllegalStateException(
-                        "Unknown product of tenant id: "
-                        + aCommand.getTenantId()
-                        + " and product id: "
-                        + aCommand.getProductId());
-            }
+		return this.newProductWith(aCommand.getTenantId(), aCommand.getProductOwnerId(), aCommand.getName(),
+				aCommand.getDescription(), DiscussionAvailability.NOT_REQUESTED);
+	}
 
-            String timedOutEventName =
-                    ProductDiscussionRequestTimedOut.class.getName();
+	public String newProductWithDiscussion(NewProductCommand aCommand) {
 
-            TimeConstrainedProcessTracker tracker =
-                    new TimeConstrainedProcessTracker(
-                            product.tenantId().id(),
-                            ProcessId.newProcessId(),
-                            "Create discussion for product: "
-                                + product.name(),
-                            new Date(),
-                            5L * 60L * 1000L, // retries every 5 minutes
-                            3, // 3 total retries
-                            timedOutEventName);
+		return this.newProductWith(aCommand.getTenantId(), aCommand.getProductOwnerId(), aCommand.getName(),
+				aCommand.getDescription(), this.requestDiscussionIfAvailable());
+	}
 
-            this.processTrackerRepository().save(tracker);
+	public void requestProductDiscussion(RequestProductDiscussionCommand aCommand) {
+		Product product = this.productRepository().productOfId(new TenantId(aCommand.getTenantId()),
+				new ProductId(aCommand.getProductId()));
 
-            product.startDiscussionInitiation(tracker.processId().id());
+		if (product == null) {
+			throw new IllegalStateException("Unknown product of tenant id: " + aCommand.getTenantId()
+					+ " and product id: " + aCommand.getProductId());
+		}
 
-            this.productRepository().save(product);
+		this.requestProductDiscussionFor(product);
+	}
 
-            ApplicationServiceLifeCycle.success();
+	public void retryProductDiscussionRequest(RetryProductDiscussionRequestCommand aCommand) {
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+		ProcessId processId = ProcessId.existingProcessId(aCommand.getProcessId());
 
-    public void timeOutProductDiscussionRequest(TimeOutProductDiscussionRequestCommand aCommand) {
+		TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-        ApplicationServiceLifeCycle.begin();
+		Product product = this.productRepository().productOfDiscussionInitiationId(tenantId, processId.id());
 
-        try {
-            ProcessId processId = ProcessId.existingProcessId(aCommand.getProcessId());
+		if (product == null) {
+			throw new IllegalStateException("Unknown product of tenant id: " + aCommand.getTenantId()
+					+ " and discussion initiation id: " + processId.id());
+		}
 
-            TenantId tenantId = new TenantId(aCommand.getTenantId());
+		this.requestProductDiscussionFor(product);
+	}
 
-            Product product =
-                    this.productRepository()
-                        .productOfDiscussionInitiationId(
-                                tenantId,
-                                processId.id());
+	public void startDiscussionInitiation(StartDiscussionInitiationCommand aCommand) {
 
-            this.sendEmailForTimedOutProcess(product);
+		ApplicationServiceLifeCycle.begin();
 
-            product.failDiscussionInitiation();
+		try {
+			Product product = this.productRepository().productOfId(new TenantId(aCommand.getTenantId()),
+					new ProductId(aCommand.getProductId()));
 
-            this.productRepository().save(product);
+			if (product == null) {
+				throw new IllegalStateException("Unknown product of tenant id: " + aCommand.getTenantId()
+						+ " and product id: " + aCommand.getProductId());
+			}
 
-            ApplicationServiceLifeCycle.success();
+			String timedOutEventName = ProductDiscussionRequestTimedOut.class.getName();
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+			TimeConstrainedProcessTracker tracker = new TimeConstrainedProcessTracker(product.tenantId().id(),
+					ProcessId.newProcessId(), "Create discussion for product: " + product.name(), new Date(),
+					5L * 60L * 1000L, // retries every 5 minutes
+					3, // 3 total retries
+					timedOutEventName);
 
-    private void sendEmailForTimedOutProcess(Product aProduct) {
+			this.processTrackerRepository().save(tracker);
 
-        // TODO: Implement
+			product.startDiscussionInitiation(tracker.processId().id());
 
-    }
+			this.productRepository().save(product);
 
-    private String newProductWith(
-            String aTenantId,
-            String aProductOwnerId,
-            String aName,
-            String aDescription,
-            DiscussionAvailability aDiscussionAvailability) {
+			ApplicationServiceLifeCycle.success();
 
-        TenantId tenantId = new TenantId(aTenantId);
-        ProductId productId = null;
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-        ApplicationServiceLifeCycle.begin();
+	public void timeOutProductDiscussionRequest(TimeOutProductDiscussionRequestCommand aCommand) {
 
-        try {
-            productId = this.productRepository().nextIdentity();
+		ApplicationServiceLifeCycle.begin();
 
-            ProductOwner productOwner =
-                    this.productOwnerRepository()
-                        .productOwnerOfIdentity(
-                                tenantId,
-                                aProductOwnerId);
+		try {
+			ProcessId processId = ProcessId.existingProcessId(aCommand.getProcessId());
 
-            Product product =
-                    new Product(
-                            tenantId,
-                            productId,
-                            productOwner.productOwnerId(),
-                            aName,
-                            aDescription,
-                            aDiscussionAvailability);
+			TenantId tenantId = new TenantId(aCommand.getTenantId());
 
-            this.productRepository().save(product);
+			Product product = this.productRepository().productOfDiscussionInitiationId(tenantId, processId.id());
 
-            ApplicationServiceLifeCycle.success();
+			this.sendEmailForTimedOutProcess(product);
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
+			product.failDiscussionInitiation();
 
-        return productId.id();
-    }
+			this.productRepository().save(product);
 
-    private DiscussionAvailability requestDiscussionIfAvailable() {
-        DiscussionAvailability availability = DiscussionAvailability.ADD_ON_NOT_ENABLED;
+			ApplicationServiceLifeCycle.success();
 
-        boolean enabled = true; // TODO: determine add-on enabled
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 
-        if (enabled) {
-            availability = DiscussionAvailability.REQUESTED;
-        }
+	private void sendEmailForTimedOutProcess(Product aProduct) {
 
-        return availability;
-    }
+		// TODO: Implement
 
-    private TimeConstrainedProcessTrackerRepository processTrackerRepository() {
-        return this.processTrackerRepository;
-    }
+	}
 
-    private ProductOwnerRepository productOwnerRepository() {
-        return this.productOwnerRepository;
-    }
+	private String newProductWith(String aTenantId, String aProductOwnerId, String aName, String aDescription,
+			DiscussionAvailability aDiscussionAvailability) {
 
-    private ProductRepository productRepository() {
-        return this.productRepository;
-    }
+		TenantId tenantId = new TenantId(aTenantId);
+		ProductId productId = null;
 
-    private void requestProductDiscussionFor(Product aProduct) {
+		ApplicationServiceLifeCycle.begin();
 
-        ApplicationServiceLifeCycle.begin();
+		try {
+			productId = this.productRepository().nextIdentity();
 
-        try {
-            aProduct.requestDiscussion(this.requestDiscussionIfAvailable());
+			ProductOwner productOwner = this.productOwnerRepository().productOwnerOfIdentity(tenantId, aProductOwnerId);
 
-            this.productRepository().save(aProduct);
+			Product product = new Product(tenantId, productId, productOwner.productOwnerId(), aName, aDescription,
+					aDiscussionAvailability);
 
-            ApplicationServiceLifeCycle.success();
+			this.productRepository().save(product);
 
-        } catch (RuntimeException e) {
-            ApplicationServiceLifeCycle.fail(e);
-        }
-    }
+			ApplicationServiceLifeCycle.success();
+
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+
+		return productId.id();
+	}
+
+	private DiscussionAvailability requestDiscussionIfAvailable() {
+		DiscussionAvailability availability = DiscussionAvailability.ADD_ON_NOT_ENABLED;
+
+		boolean enabled = true; // TODO: determine add-on enabled
+
+		if (enabled) {
+			availability = DiscussionAvailability.REQUESTED;
+		}
+
+		return availability;
+	}
+
+	private TimeConstrainedProcessTrackerRepository processTrackerRepository() {
+		return this.processTrackerRepository;
+	}
+
+	private ProductOwnerRepository productOwnerRepository() {
+		return this.productOwnerRepository;
+	}
+
+	private ProductRepository productRepository() {
+		return this.productRepository;
+	}
+
+	private void requestProductDiscussionFor(Product aProduct) {
+
+		ApplicationServiceLifeCycle.begin();
+
+		try {
+			aProduct.requestDiscussion(this.requestDiscussionIfAvailable());
+
+			this.productRepository().save(aProduct);
+
+			ApplicationServiceLifeCycle.success();
+
+		} catch (RuntimeException e) {
+			ApplicationServiceLifeCycle.fail(e);
+		}
+	}
 }

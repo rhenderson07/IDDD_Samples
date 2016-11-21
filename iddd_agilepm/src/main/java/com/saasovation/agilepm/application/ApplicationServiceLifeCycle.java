@@ -33,116 +33,106 @@ import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork
 
 public class ApplicationServiceLifeCycle {
 
-    private static final DB database;
-    private static final EventStore eventStore;
-    private static NotificationApplicationService notificationApplicationService;
-    private static NotificationPublisher notificationPublisher;
-    private static NotificationPublisherTimer timer;
-    private static PublishedNotificationTrackerStore publishedNotificationTrackerStore;
+	private static final DB database;
+	private static final EventStore eventStore;
+	private static NotificationApplicationService notificationApplicationService;
+	private static NotificationPublisher notificationPublisher;
+	private static NotificationPublisherTimer timer;
+	private static PublishedNotificationTrackerStore publishedNotificationTrackerStore;
 
-    static {
-        database =
-                LevelDBProvider
-                    .instance()
-                    .databaseFrom(LevelDBDatabasePath.agilePMPath());
+	static {
+		database = LevelDBProvider.instance().databaseFrom(LevelDBDatabasePath.agilePMPath());
 
-        eventStore = new LevelDBEventStore(LevelDBDatabasePath.agilePMPath());
+		eventStore = new LevelDBEventStore(LevelDBDatabasePath.agilePMPath());
 
-        timer = new NotificationPublisherTimer();
+		timer = new NotificationPublisherTimer();
 
-        publishedNotificationTrackerStore =
-                new LevelDBPublishedNotificationTrackerStore(
-                        LevelDBDatabasePath.agilePMPath(),
-                        "saasovation.agilepm");
+		publishedNotificationTrackerStore = new LevelDBPublishedNotificationTrackerStore(
+				LevelDBDatabasePath.agilePMPath(), "saasovation.agilepm");
 
-//        notificationPublisher =
-//                new RabbitMQNotificationPublisher(
-//                        eventStore,
-//                        publishedNotificationTrackerStore,
-//                        Exchanges.AGILEPM_EXCHANGE_NAME);
+		// notificationPublisher =
+		// new RabbitMQNotificationPublisher(
+		// eventStore,
+		// publishedNotificationTrackerStore,
+		// Exchanges.AGILEPM_EXCHANGE_NAME);
 
-        notificationPublisher =
-                new SlothMQNotificationPublisher(
-                        eventStore,
-                        publishedNotificationTrackerStore,
-                        Exchanges.AGILEPM_EXCHANGE_NAME);
+		notificationPublisher = new SlothMQNotificationPublisher(eventStore, publishedNotificationTrackerStore,
+				Exchanges.AGILEPM_EXCHANGE_NAME);
 
-        notificationApplicationService = new NotificationApplicationService(notificationPublisher);
+		notificationApplicationService = new NotificationApplicationService(notificationPublisher);
 
-        timer.start();
-    }
+		timer.start();
+	}
 
-    public static void begin() {
-        ApplicationServiceLifeCycle.begin(true);
-    }
+	public static void begin() {
+		ApplicationServiceLifeCycle.begin(true);
+	}
 
-    public static void begin(boolean isListening) {
-        if (isListening) {
-            ApplicationServiceLifeCycle.listen();
-        }
+	public static void begin(boolean isListening) {
+		if (isListening) {
+			ApplicationServiceLifeCycle.listen();
+		}
 
-        LevelDBUnitOfWork.start(database);
-    }
+		LevelDBUnitOfWork.start(database);
+	}
 
-    public static void fail() {
-        LevelDBUnitOfWork.current().rollback();
-    }
+	public static void fail() {
+		LevelDBUnitOfWork.current().rollback();
+	}
 
-    public static void fail(RuntimeException anException) {
-        ApplicationServiceLifeCycle.fail();
+	public static void fail(RuntimeException anException) {
+		ApplicationServiceLifeCycle.fail();
 
-        throw anException;
-    }
+		throw anException;
+	}
 
-    public static void fail(Throwable aThrowable) throws Throwable {
-        ApplicationServiceLifeCycle.fail();
+	public static void fail(Throwable aThrowable) throws Throwable {
+		ApplicationServiceLifeCycle.fail();
 
-        throw aThrowable;
-    }
+		throw aThrowable;
+	}
 
-    public static void success() {
-        LevelDBUnitOfWork.current().commit();
-    }
+	public static void success() {
+		LevelDBUnitOfWork.current().commit();
+	}
 
-    private static void listen() {
-        DomainEventPublisher.instance().reset();
+	private static void listen() {
+		DomainEventPublisher.instance().reset();
 
-        DomainEventPublisher
-            .instance()
-            .subscribe(new DomainEventSubscriber<DomainEvent>() {
+		DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<DomainEvent>() {
 
-                public void handleEvent(DomainEvent aDomainEvent) {
-                    eventStore.append(aDomainEvent);
-                }
+			public void handleEvent(DomainEvent aDomainEvent) {
+				eventStore.append(aDomainEvent);
+			}
 
-                public Class<DomainEvent> subscribedToEventType() {
-                    return DomainEvent.class; // all domain events
-                }
-            });
-    }
+			public Class<DomainEvent> subscribedToEventType() {
+				return DomainEvent.class; // all domain events
+			}
+		});
+	}
 
-    // TODO: need to monitor this...
+	// TODO: need to monitor this...
 
-    private static class NotificationPublisherTimer extends Thread {
-        public NotificationPublisherTimer() {
-            super();
-        }
+	private static class NotificationPublisherTimer extends Thread {
+		public NotificationPublisherTimer() {
+			super();
+		}
 
-        @Override
-        public void run() {
-            while (true) {
-                try {
-                    notificationApplicationService.publishNotifications();
-                } catch (Exception e) {
-                    System.out.println("Problem publishing notifications from ApplicationServiceLifeCycle.");
-                }
+		@Override
+		public void run() {
+			while (true) {
+				try {
+					notificationApplicationService.publishNotifications();
+				} catch (Exception e) {
+					System.out.println("Problem publishing notifications from ApplicationServiceLifeCycle.");
+				}
 
-                try {
-                    Thread.sleep(100L);
-                } catch (Exception e) {
-                    // ignore
-                }
-            }
-        }
-    }
+				try {
+					Thread.sleep(100L);
+				} catch (Exception e) {
+					// ignore
+				}
+			}
+		}
+	}
 }

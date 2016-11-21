@@ -14,6 +14,7 @@
 
 package com.saasovation.agilepm.domain.model.product.backlogitem;
 
+import java.util.Calendar;
 import java.util.Date;
 
 import com.saasovation.agilepm.domain.model.Entity;
@@ -27,12 +28,12 @@ public class EstimationLogEntry extends Entity {
     private TenantId tenantId;
 
     public static Date currentLogDate() {
-        java.util.Calendar calendar = java.util.Calendar.getInstance();
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0);
-        calendar.set(java.util.Calendar.MINUTE, 0);
-        calendar.set(java.util.Calendar.SECOND, 0);
-        calendar.set(java.util.Calendar.MILLISECOND, 0);
-        java.util.Date today = calendar.getTime();
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        Date today = calendar.getTime();
 
         return today;
     }

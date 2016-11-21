@@ -14,15 +14,20 @@
 
 package com.saasovation.common.domain.model;
 
-import static com.saasovation.common.port.adapter.messaging.Exchanges.*;
+import static com.saasovation.common.port.adapter.messaging.Exchanges.AGILEPM_EXCHANGE_NAME;
+import static com.saasovation.common.port.adapter.messaging.Exchanges.COLLABORATION_EXCHANGE_NAME;
+import static com.saasovation.common.port.adapter.messaging.Exchanges.IDENTITY_ACCESS_EXCHANGE_NAME;
 
-import java.util.*;
-
-import junit.framework.TestCase;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.saasovation.common.notification.NotificationReader;
 import com.saasovation.common.port.adapter.messaging.Exchanges;
 import com.saasovation.common.port.adapter.messaging.slothmq.SlothServer;
+
+import junit.framework.TestCase;
 
 public abstract class EventTrackingTestCase extends TestCase {
 

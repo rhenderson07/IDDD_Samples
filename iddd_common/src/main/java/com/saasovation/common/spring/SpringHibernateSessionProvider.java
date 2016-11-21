@@ -18,52 +18,53 @@ import java.sql.Connection;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.connection.ConnectionProvider;
-import org.hibernate.engine.SessionFactoryImplementor;
+//import org.hibernate.connection.ConnectionProvider;
+//import org.hibernate.engine.SessionFactoryImplementor;
+
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 
 public class SpringHibernateSessionProvider {
 
-    private static final ThreadLocal<Session> sessionHolder = new ThreadLocal<Session>();
+	private static final ThreadLocal<Session> sessionHolder = new ThreadLocal<Session>();
 
-    private SessionFactory sessionFactory;
+	private SessionFactory sessionFactory;
 
-    public SpringHibernateSessionProvider() {
-        super();
-    }
+	public SpringHibernateSessionProvider() {
+		super();
+	}
 
-    public Connection connection() {
-        Connection connection = null;
+	public Connection connection() {
+		Connection connection = null;
 
-        try {
-            SessionFactoryImplementor sfi =
-                   (SessionFactoryImplementor) this.sessionFactory;
+		try {
 
-            ConnectionProvider connectionProvider = sfi.getConnectionProvider();
+			SessionFactoryImplementor sfi = (SessionFactoryImplementor) this.sessionFactory;
 
-            connection = connectionProvider.getConnection();
+			@SuppressWarnings("deprecation")
+			ConnectionProvider connectionProvider = sfi.getConnectionProvider();
 
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Cannot get connection from session factory because: "
-                    + e.getMessage(),
-                    e);
-        }
+			connection = connectionProvider.getConnection();
 
-        return connection;
-    }
+		} catch (Exception e) {
+			throw new IllegalStateException("Cannot get connection from session factory because: " + e.getMessage(), e);
+		}
 
-    public Session session() {
-        Session threadBoundSession = sessionHolder.get();
+		return connection;
+	}
 
-        if (threadBoundSession == null) {
-            threadBoundSession = this.sessionFactory.openSession();
-            sessionHolder.set(threadBoundSession);
-        }
+	public Session session() {
+		Session threadBoundSession = sessionHolder.get();
 
-        return threadBoundSession;
-    }
+		if (threadBoundSession == null) {
+			threadBoundSession = this.sessionFactory.openSession();
+			sessionHolder.set(threadBoundSession);
+		}
 
-    public void setSessionFactory(SessionFactory aSessionFactory) {
-        this.sessionFactory = aSessionFactory;
-    }
+		return threadBoundSession;
+	}
+
+	public void setSessionFactory(SessionFactory aSessionFactory) {
+		this.sessionFactory = aSessionFactory;
+	}
 }
