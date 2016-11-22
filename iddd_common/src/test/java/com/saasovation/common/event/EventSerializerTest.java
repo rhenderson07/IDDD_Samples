@@ -14,98 +14,109 @@
 
 package com.saasovation.common.event;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-public class EventSerializerTest extends TestCase {
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-    public EventSerializerTest() {
-        super();
-    }
+@RunWith(SpringJUnit4ClassRunner.class)
+public class EventSerializerTest {
 
-    public void testDefaultFormat() throws Exception {
-        EventSerializer serializer = EventSerializer.instance();
+	@Test
+	public void testDefaultFormat() {
+		EventSerializer serializer = EventSerializer.instance();
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
 
-        assertTrue(serializedEvent.contains("\"id\""));
-        assertTrue(serializedEvent.contains("\"occurredOn\""));
-        assertFalse(serializedEvent.contains("\n"));
-        assertTrue(serializedEvent.contains("null"));
-    }
+		assertTrue(serializedEvent.contains("\"id\""));
+		assertTrue(serializedEvent.contains("\"occurredOn\""));
+		assertFalse(serializedEvent.contains("\n"));
+		assertTrue(serializedEvent.contains("null"));
+	}
 
-    public void testCompact() throws Exception {
-        EventSerializer serializer = new EventSerializer(true);
+	@Test
+	public void testCompact() {
+		EventSerializer serializer = new EventSerializer(true);
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
 
-        assertTrue(serializedEvent.contains("\"id\""));
-        assertTrue(serializedEvent.contains("\"occurredOn\""));
-        assertFalse(serializedEvent.contains("\n"));
-        assertFalse(serializedEvent.contains("null"));
-    }
+		assertTrue(serializedEvent.contains("\"id\""));
+		assertTrue(serializedEvent.contains("\"occurredOn\""));
+		assertFalse(serializedEvent.contains("\n"));
+		assertFalse(serializedEvent.contains("null"));
+	}
 
-    public void testPrettyAndCompact() throws Exception {
-        EventSerializer serializer = new EventSerializer(true, true);
+	@Test
+	public void testPrettyAndCompact() {
+		EventSerializer serializer = new EventSerializer(true, true);
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
 
-        assertTrue(serializedEvent.contains("\"id\""));
-        assertTrue(serializedEvent.contains("\"occurredOn\""));
-        assertTrue(serializedEvent.contains("\n"));
-        assertFalse(serializedEvent.contains("null"));
-    }
+		assertTrue(serializedEvent.contains("\"id\""));
+		assertTrue(serializedEvent.contains("\"occurredOn\""));
+		assertTrue(serializedEvent.contains("\n"));
+		assertFalse(serializedEvent.contains("null"));
+	}
 
-    public void testDeserializeDefault() throws Exception {
-        EventSerializer serializer = EventSerializer.instance();
+	@Test
+	public void testDeserializeDefault() {
+		EventSerializer serializer = EventSerializer.instance();
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
 
-        TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
+		TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
 
-        assertTrue(serializedEvent.contains("null"));
-        assertEquals(1, event.id());
-        assertEquals(null, event.name());
-        assertNotNull(event.occurredOn());
-    }
+		assertTrue(serializedEvent.contains("null"));
+		assertEquals(1, event.id());
+		assertEquals(null, event.name());
+		assertNotNull(event.occurredOn());
+	}
 
-    public void testDeserializeCompactNotNull() throws Exception {
-        EventSerializer serializer = new EventSerializer(true);
+	@Test
+	public void testDeserializeCompactNotNull() {
+		EventSerializer serializer = new EventSerializer(true);
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, "test"));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, "test"));
 
-        TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
+		TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
 
-        assertFalse(serializedEvent.contains("null"));
-        assertTrue(serializedEvent.contains("\"test\""));
-        assertEquals(1, event.id());
-        assertEquals("test", event.name());
-        assertNotNull(event.occurredOn());
-    }
+		assertFalse(serializedEvent.contains("null"));
+		assertTrue(serializedEvent.contains("\"test\""));
+		assertEquals(1, event.id());
+		assertEquals("test", event.name());
+		assertNotNull(event.occurredOn());
+	}
 
-    public void testDeserializeCompactNull() throws Exception {
-        EventSerializer serializer = new EventSerializer(true);
+	@Test
+	public void testDeserializeCompactNull() {
+		EventSerializer serializer = new EventSerializer(true);
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
 
-        TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
+		TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
 
-        assertFalse(serializedEvent.contains("null"));
-        assertEquals(1, event.id());
-        assertEquals(null, event.name());
-        assertNotNull(event.occurredOn());
-    }
+		assertFalse(serializedEvent.contains("null"));
+		assertEquals(1, event.id());
+		assertEquals(null, event.name());
+		assertNotNull(event.occurredOn());
+	}
 
-    public void testDeserializePrettyAndCompactNull() throws Exception {
-        EventSerializer serializer = new EventSerializer(true, true);
+	@Test
+	public void testDeserializePrettyAndCompactNull() {
+		EventSerializer serializer = new EventSerializer(true, true);
 
-        String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
+		String serializedEvent = serializer.serialize(new TestableDomainEvent(1, null));
 
-        TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
+		TestableDomainEvent event = serializer.deserialize(serializedEvent, TestableDomainEvent.class);
 
-        assertFalse(serializedEvent.contains("null"));
-        assertTrue(serializedEvent.contains("\n"));
-        assertEquals(1, event.id());
-        assertEquals(null, event.name());
-        assertNotNull(event.occurredOn());
-    }
+		assertFalse(serializedEvent.contains("null"));
+		assertTrue(serializedEvent.contains("\n"));
+		assertEquals(1, event.id());
+		assertEquals(null, event.name());
+		assertNotNull(event.occurredOn());
+	}
 }

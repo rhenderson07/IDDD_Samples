@@ -14,119 +14,117 @@
 
 package com.saasovation.common.event;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import com.saasovation.common.CommonTestCase;
 import com.saasovation.common.persistence.PersistenceManagerProvider;
 
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertNotNull;
-
 public class EventStoreContractTest extends CommonTestCase {
 
-    public EventStoreContractTest() {
-        super();
-    }
+	private EventStore mockEventStore;
 
-    public void testAllStoredEventsBetween() throws Exception {
-        EventStore eventStore = this.eventStore();
+	@Before
+	public void setUp() {
+		mockEventStore = new MockEventStore(new PersistenceManagerProvider() {
+		});
+	}
 
-        long totalEvents = eventStore.countStoredEvents();
+	@Test
+	public void testAllStoredEventsBetween() {
 
-        assertEquals(totalEvents, eventStore.allStoredEventsBetween(1, totalEvents).size());
+		long totalEvents = mockEventStore.countStoredEvents();
 
-        assertEquals(10, eventStore.allStoredEventsBetween(totalEvents - 9, totalEvents).size());
-    }
+		assertEquals(totalEvents, mockEventStore.allStoredEventsBetween(1, totalEvents).size());
 
-    public void testAllStoredEventsSince() throws Exception {
-        EventStore eventStore = this.eventStore();
+		assertEquals(10, mockEventStore.allStoredEventsBetween(totalEvents - 9, totalEvents).size());
+	}
 
-        long totalEvents = eventStore.countStoredEvents();
+	@Test
+	public void testAllStoredEventsSince() {
 
-        assertEquals(totalEvents, eventStore.allStoredEventsSince(0).size());
+		long totalEvents = mockEventStore.countStoredEvents();
 
-        assertEquals(0, eventStore.allStoredEventsSince(totalEvents).size());
+		assertEquals(totalEvents, mockEventStore.allStoredEventsSince(0).size());
 
-        assertEquals(10, eventStore.allStoredEventsSince(totalEvents - 10).size());
-    }
+		assertEquals(0, mockEventStore.allStoredEventsSince(totalEvents).size());
 
-    public void testAppend() throws Exception {
-        EventStore eventStore = this.eventStore();
+		assertEquals(10, mockEventStore.allStoredEventsSince(totalEvents - 10).size());
+	}
 
-        long numberOfEvents = eventStore.countStoredEvents();
+	@Test
+	public void testAppend() {
 
-        TestableDomainEvent domainEvent = new TestableDomainEvent(10001, "testDomainEvent");
+		long numberOfEvents = mockEventStore.countStoredEvents();
 
-        StoredEvent storedEvent = eventStore.append(domainEvent);
+		TestableDomainEvent domainEvent = new TestableDomainEvent(10001, "testDomainEvent");
 
-        assertTrue(eventStore.countStoredEvents() > numberOfEvents);
-        assertEquals(eventStore.countStoredEvents(), numberOfEvents + 1);
+		StoredEvent storedEvent = mockEventStore.append(domainEvent);
 
-        assertNotNull(storedEvent);
+		assertTrue(mockEventStore.countStoredEvents() > numberOfEvents);
+		assertEquals(mockEventStore.countStoredEvents(), numberOfEvents + 1);
 
-        TestableDomainEvent reconstitutedDomainEvent = storedEvent.toDomainEvent();
+		assertNotNull(storedEvent);
 
-        assertNotNull(reconstitutedDomainEvent);
-        assertEquals(domainEvent.id(), reconstitutedDomainEvent.id());
-        assertEquals(domainEvent.name(), reconstitutedDomainEvent.name());
-        assertEquals(domainEvent.occurredOn(), reconstitutedDomainEvent.occurredOn());
-    }
+		TestableDomainEvent reconstitutedDomainEvent = storedEvent.toDomainEvent();
 
-    public void testCountStoredEvents() throws Exception {
-        EventStore eventStore = this.eventStore();
+		assertNotNull(reconstitutedDomainEvent);
+		assertEquals(domainEvent.id(), reconstitutedDomainEvent.id());
+		assertEquals(domainEvent.name(), reconstitutedDomainEvent.name());
+		assertEquals(domainEvent.occurredOn(), reconstitutedDomainEvent.occurredOn());
+	}
 
-        long numberOfEvents = eventStore.countStoredEvents();
+	@Test
+	public void testCountStoredEvents() {
 
-        TestableDomainEvent lastDomainEvent = null;
+		long numberOfEvents = mockEventStore.countStoredEvents();
 
-        for (int idx = 0; idx < 10; ++idx) {
-            TestableDomainEvent domainEvent = new TestableDomainEvent(10001 + idx, "testDomainEvent" + idx);
+		TestableDomainEvent lastDomainEvent = null;
 
-            lastDomainEvent = domainEvent;
+		for (int idx = 0; idx < 10; ++idx) {
+			TestableDomainEvent domainEvent = new TestableDomainEvent(10001 + idx, "testDomainEvent" + idx);
 
-            eventStore.append(domainEvent);
-        }
+			lastDomainEvent = domainEvent;
 
-        assertEquals(numberOfEvents + 10, eventStore.countStoredEvents());
+			mockEventStore.append(domainEvent);
+		}
 
-        numberOfEvents = eventStore.countStoredEvents();
+		assertEquals(numberOfEvents + 10, mockEventStore.countStoredEvents());
 
-        assertEquals(1, eventStore.allStoredEventsBetween(numberOfEvents, numberOfEvents + 1000).size());
+		numberOfEvents = mockEventStore.countStoredEvents();
 
-        StoredEvent storedEvent = eventStore.allStoredEventsBetween(numberOfEvents, numberOfEvents).get(0);
+		assertEquals(1, mockEventStore.allStoredEventsBetween(numberOfEvents, numberOfEvents + 1000).size());
 
-        assertNotNull(storedEvent);
+		StoredEvent storedEvent = mockEventStore.allStoredEventsBetween(numberOfEvents, numberOfEvents).get(0);
 
-        TestableDomainEvent reconstitutedDomainEvent = storedEvent.toDomainEvent();
+		assertNotNull(storedEvent);
 
-        assertNotNull(reconstitutedDomainEvent);
-        assertEquals(lastDomainEvent.id(), reconstitutedDomainEvent.id());
-        assertEquals(lastDomainEvent.name(), reconstitutedDomainEvent.name());
-        assertEquals(lastDomainEvent.occurredOn(), reconstitutedDomainEvent.occurredOn());
-    }
+		TestableDomainEvent reconstitutedDomainEvent = storedEvent.toDomainEvent();
 
-    public void testStoredEvent() throws Exception {
-        EventStore eventStore = this.eventStore();
+		assertNotNull(reconstitutedDomainEvent);
+		assertEquals(lastDomainEvent.id(), reconstitutedDomainEvent.id());
+		assertEquals(lastDomainEvent.name(), reconstitutedDomainEvent.name());
+		assertEquals(lastDomainEvent.occurredOn(), reconstitutedDomainEvent.occurredOn());
+	}
 
-        TestableDomainEvent domainEvent = new TestableDomainEvent(10001, "testDomainEvent");
+	@Test
+	public void testStoredEvent() {
 
-        StoredEvent storedEvent = eventStore.append(domainEvent);
+		TestableDomainEvent domainEvent = new TestableDomainEvent(10001, "testDomainEvent");
 
-        assertNotNull(storedEvent);
+		StoredEvent storedEvent = mockEventStore.append(domainEvent);
 
-        TestableDomainEvent reconstitutedDomainEvent = storedEvent.toDomainEvent();
+		assertNotNull(storedEvent);
 
-        assertNotNull(reconstitutedDomainEvent);
-        assertEquals(domainEvent.id(), reconstitutedDomainEvent.id());
-        assertEquals(domainEvent.name(), reconstitutedDomainEvent.name());
-        assertEquals(domainEvent.occurredOn(), reconstitutedDomainEvent.occurredOn());
-    }
+		TestableDomainEvent reconstitutedDomainEvent = storedEvent.toDomainEvent();
 
-    private EventStore eventStore() {
-        EventStore eventStore = new MockEventStore(new PersistenceManagerProvider() {});
-
-        assertNotNull(eventStore);
-
-        return eventStore;
-    }
+		assertNotNull(reconstitutedDomainEvent);
+		assertEquals(domainEvent.id(), reconstitutedDomainEvent.id());
+		assertEquals(domainEvent.name(), reconstitutedDomainEvent.name());
+		assertEquals(domainEvent.occurredOn(), reconstitutedDomainEvent.occurredOn());
+	}
 }

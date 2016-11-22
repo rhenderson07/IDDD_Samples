@@ -14,80 +14,89 @@
 
 package com.saasovation.common.event;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
 import com.saasovation.common.domain.model.DomainEventPublisher;
 import com.saasovation.common.domain.model.DomainEventSubscriber;
 
-import junit.framework.TestCase;
+@RunWith(SpringJUnit4ClassRunner.class)
+public class DomainEventPublisherTest {
 
-public class DomainEventPublisherTest extends TestCase {
+	private boolean anotherEventHandled;
+	private boolean eventHandled;
 
-    private boolean anotherEventHandled;
-    private boolean eventHandled;
+	@Test
+	public void testDomainEventPublisherPublish() {
+		DomainEventPublisher.instance().reset();
 
-    public DomainEventPublisherTest() {
-        super();
-    }
+		DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<TestableDomainEvent>() {
+			@Override
+			public void handleEvent(TestableDomainEvent aDomainEvent) {
+				assertEquals(100L, aDomainEvent.id());
+				assertEquals("test", aDomainEvent.name());
+				eventHandled = true;
+			}
 
-    public void testDomainEventPublisherPublish() throws Exception {
-        DomainEventPublisher.instance().reset();
+			@Override
+			public Class<TestableDomainEvent> subscribedToEventType() {
+				return TestableDomainEvent.class;
+			}
+		});
 
-        DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<TestableDomainEvent>(){
-            @Override
-            public void handleEvent(TestableDomainEvent aDomainEvent) {
-                assertEquals(100L, aDomainEvent.id());
-                assertEquals("test", aDomainEvent.name());
-                eventHandled = true;
-            }
-            @Override
-            public Class<TestableDomainEvent> subscribedToEventType() {
-                return TestableDomainEvent.class;
-            }
-        });
+		assertFalse(this.eventHandled);
 
-        assertFalse(this.eventHandled);
+		DomainEventPublisher.instance().publish(new TestableDomainEvent(100L, "test"));
 
-        DomainEventPublisher.instance().publish(new TestableDomainEvent(100L, "test"));
+		assertTrue(this.eventHandled);
+	}
 
-        assertTrue(this.eventHandled);
-    }
+	@Test
+	public void testDomainEventPublisherBlocked() throws Exception {
+		DomainEventPublisher.instance().reset();
 
-    public void testDomainEventPublisherBlocked() throws Exception {
-        DomainEventPublisher.instance().reset();
+		DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<TestableDomainEvent>() {
+			@Override
+			public void handleEvent(TestableDomainEvent aDomainEvent) {
+				assertEquals(100L, aDomainEvent.id());
+				assertEquals("test", aDomainEvent.name());
+				eventHandled = true;
+				// attempt nested publish, which should not work
+				DomainEventPublisher.instance().publish(new AnotherTestableDomainEvent(1000.0));
+			}
 
-        DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<TestableDomainEvent>(){
-            @Override
-            public void handleEvent(TestableDomainEvent aDomainEvent) {
-                assertEquals(100L, aDomainEvent.id());
-                assertEquals("test", aDomainEvent.name());
-                eventHandled = true;
-                // attempt nested publish, which should not work
-                DomainEventPublisher.instance().publish(new AnotherTestableDomainEvent(1000.0));
-            }
-            @Override
-            public Class<TestableDomainEvent> subscribedToEventType() {
-                return TestableDomainEvent.class;
-            }
-        });
+			@Override
+			public Class<TestableDomainEvent> subscribedToEventType() {
+				return TestableDomainEvent.class;
+			}
+		});
 
-        DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<AnotherTestableDomainEvent>(){
-            @Override
-            public void handleEvent(AnotherTestableDomainEvent aDomainEvent) {
-                // should never be reached due to blocked publisher
-                assertEquals(1000.0, aDomainEvent.value());
-                anotherEventHandled = true;
-            }
-            @Override
-            public Class<AnotherTestableDomainEvent> subscribedToEventType() {
-                return AnotherTestableDomainEvent.class;
-            }
-        });
+		DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<AnotherTestableDomainEvent>() {
+			@Override
+			public void handleEvent(AnotherTestableDomainEvent aDomainEvent) {
+				double ERROR_DELTA = 0.0001;
+				// should never be reached due to blocked publisher
+				assertEquals(1000.0, aDomainEvent.value(), ERROR_DELTA);
+				anotherEventHandled = true;
+			}
 
-        assertFalse(this.eventHandled);
-        assertFalse(this.anotherEventHandled);
+			@Override
+			public Class<AnotherTestableDomainEvent> subscribedToEventType() {
+				return AnotherTestableDomainEvent.class;
+			}
+		});
 
-        DomainEventPublisher.instance().publish(new TestableDomainEvent(100L, "test"));
+		assertFalse(this.eventHandled);
+		assertFalse(this.anotherEventHandled);
 
-        assertTrue(this.eventHandled);
-        assertFalse(this.anotherEventHandled);
-    }
+		DomainEventPublisher.instance().publish(new TestableDomainEvent(100L, "test"));
+
+		assertTrue(this.eventHandled);
+		assertFalse(this.anotherEventHandled);
+	}
 }
