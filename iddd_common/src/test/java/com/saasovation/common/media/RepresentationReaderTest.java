@@ -14,31 +14,28 @@
 
 package com.saasovation.common.media;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
 
-public class RepresentationReaderTest extends TestCase {
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-    private static final String USER_IN_ROLE_REPRESENTATION =
-            "{"
-            + "\"role\":\"Author\",\"username\":\"zoe\","
-            + "\"tenantId\":\"A94A8298-43B8-4DA0-9917-13FFF9E116ED\","
-            + "\"firstName\":\"Zoe\",\"lastName\":\"Doe\","
-            + "\"emailAddress\":\"zoe@saasovation.com\""
-            + "}";
+@RunWith(SpringJUnit4ClassRunner.class)
+public class RepresentationReaderTest {
 
-    public RepresentationReaderTest() {
-        super();
-    }
+	private static final String USER_IN_ROLE_REPRESENTATION = "{" + "\"role\":\"Author\",\"username\":\"zoe\","
+			+ "\"tenantId\":\"A94A8298-43B8-4DA0-9917-13FFF9E116ED\"," + "\"firstName\":\"Zoe\",\"lastName\":\"Doe\","
+			+ "\"emailAddress\":\"zoe@saasovation.com\"" + "}";
 
-    public void testUserInRoleRepresentation() throws Exception {
-        RepresentationReader reader =
-                new RepresentationReader(USER_IN_ROLE_REPRESENTATION);
+	@Test
+	public void testUserInRoleRepresentation() {
+		RepresentationReader reader = new RepresentationReader(USER_IN_ROLE_REPRESENTATION);
 
-        assertEquals("Author", reader.stringValue("role"));
-        assertEquals("zoe", reader.stringValue("username"));
-        assertEquals("A94A8298-43B8-4DA0-9917-13FFF9E116ED", reader.stringValue("tenantId"));
-        assertEquals("Zoe", reader.stringValue("firstName"));
-        assertEquals("Doe", reader.stringValue("lastName"));
-        assertEquals("zoe@saasovation.com", reader.stringValue("emailAddress"));
-    }
+		assertEquals("Author", reader.stringValue("role"));
+		assertEquals("zoe", reader.stringValue("username"));
+		assertEquals("A94A8298-43B8-4DA0-9917-13FFF9E116ED", reader.stringValue("tenantId"));
+		assertEquals("Zoe", reader.stringValue("firstName"));
+		assertEquals("Doe", reader.stringValue("lastName"));
+		assertEquals("zoe@saasovation.com", reader.stringValue("emailAddress"));
+	}
 }

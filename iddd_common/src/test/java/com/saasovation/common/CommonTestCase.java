@@ -45,20 +45,9 @@ public abstract class CommonTestCase {
 
 	protected ApplicationContext applicationContext;
 	protected SpringHibernateSessionProvider sessionProvider;
-	private Transaction transaction;
 
 	public CommonTestCase() {
 		super();
-	}
-
-	protected Session session() {
-		Session session = this.sessionProvider.session();
-
-		return session;
-	}
-
-	protected Transaction transaction() {
-		return this.transaction;
 	}
 
 	@Before
@@ -77,17 +66,6 @@ public abstract class CommonTestCase {
 
 	@After
 	public void tearDown() {
-
-//		this.transaction().rollback();
-//
-//		this.setTransaction(null);
-//
-//		this.session().clear();
-
 		System.out.println("<<<<<<<<<<<<<<<<<<<< (end)");
-	}
-
-	private void setTransaction(Transaction aTransaction) {
-		this.transaction = aTransaction;
 	}
 }

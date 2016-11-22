@@ -7,6 +7,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @ComponentScan("com.saasovation.common")
-//@EnableTransactionManagement
+@EnableTransactionManagement
 public class CommonTestConfig {
 
 //	@Bean
@@ -32,16 +33,26 @@ public class CommonTestConfig {
 //			.build();
 //		return db;
 //	}
-//	
-//	
-//	@Bean
-//	public JdbcTemplate jdbcTemplate(DataSource dataSource) {
-//		return new JdbcTemplate(dataSource);
-//	}
-//	
-//	@Bean
-//	public PlatformTransactionManager txManager(DataSource dataSource) {
-//		return new DataSourceTransactionManager(dataSource);
-//	}
+	
+	@Bean
+	public DataSource dataSource() {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource();
 
+		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
+		dataSource.setUrl("jdbc:mysql://localhost:3306/iddd_common_test");
+		dataSource.setUsername("root");
+		dataSource.setPassword("root");
+
+		return dataSource;
+	}
+	
+	@Bean
+	public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+		return new JdbcTemplate(dataSource);
+	}
+	
+	@Bean
+	public PlatformTransactionManager txManager(DataSource dataSource) {
+		return new DataSourceTransactionManager(dataSource);
+	}
 }

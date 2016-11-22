@@ -16,9 +16,9 @@ package com.saasovation.common.notification;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.saasovation.common.CommonTestCase;
@@ -28,82 +28,77 @@ import com.saasovation.common.persistence.PersistenceManagerProvider;
 
 public class NotificationLogTest extends CommonTestCase {
 
-    public NotificationLogTest() {
-        super();
-    }
+	private EventStore mockEventStore;
 
-    @Test
-    public void testCurrentNotificationLogFromFactory() throws Exception {
-        EventStore eventStore = this.eventStore();
-        NotificationLogFactory factory = new NotificationLogFactory(eventStore);
-        NotificationLog log = factory.createCurrentNotificationLog();
+	@Before
+	public void setUp() {
+		mockEventStore = new MockEventStore(new PersistenceManagerProvider() {
+		});
+	}
 
-        assertTrue(NotificationLogFactory.notificationsPerLog() >= log.totalNotifications());
-        assertTrue(eventStore.countStoredEvents() >= log.totalNotifications());
-        assertFalse(log.hasNextNotificationLog());
-        assertTrue(log.hasPreviousNotificationLog());
-        assertFalse(log.isArchived());
-    }
+	@Test
+	public void testCurrentNotificationLogFromFactory() {
 
-    @Test
-    public void testFirstNotificationLogFromFactory() throws Exception {
-        EventStore eventStore = this.eventStore();
-        NotificationLogId id = NotificationLogId.first(NotificationLogFactory.notificationsPerLog());
-        NotificationLogFactory factory = new NotificationLogFactory(eventStore);
-        NotificationLog log = factory.createNotificationLog(id);
+		NotificationLogFactory factory = new NotificationLogFactory(mockEventStore);
+		NotificationLog log = factory.createCurrentNotificationLog();
 
-        assertEquals(NotificationLogFactory.notificationsPerLog(), log.totalNotifications());
-        assertTrue(eventStore.countStoredEvents() >= log.totalNotifications());
-        assertTrue(log.hasNextNotificationLog());
-        assertFalse(log.hasPreviousNotificationLog());
-        assertTrue(log.isArchived());
-    }
+		assertTrue(NotificationLogFactory.notificationsPerLog() >= log.totalNotifications());
+		assertTrue(mockEventStore.countStoredEvents() >= log.totalNotifications());
+		assertFalse(log.hasNextNotificationLog());
+		assertTrue(log.hasPreviousNotificationLog());
+		assertFalse(log.isArchived());
+	}
 
-    @Test
-    public void testPreviousOfCurrentNotificationLogFromFactory() throws Exception {
-        EventStore eventStore = this.eventStore();
-        long totalEvents = eventStore.countStoredEvents();
-        boolean shouldBePrevious = totalEvents > (NotificationLogFactory.notificationsPerLog() * 2);
-        NotificationLogFactory factory = new NotificationLogFactory(eventStore);
-        NotificationLog log = factory.createCurrentNotificationLog();
+	@Test
+	public void testFirstNotificationLogFromFactory() {
 
-        NotificationLogId previousId = log.decodedPreviousNotificationLogId();
-        log = factory.createNotificationLog(previousId);
+		NotificationLogId id = NotificationLogId.first(NotificationLogFactory.notificationsPerLog());
+		NotificationLogFactory factory = new NotificationLogFactory(mockEventStore);
+		NotificationLog log = factory.createNotificationLog(id);
 
-        assertEquals(NotificationLogFactory.notificationsPerLog(), log.totalNotifications());
-        assertTrue(totalEvents >= log.totalNotifications());
-        assertTrue(log.hasNextNotificationLog());
-        assertEquals(shouldBePrevious, log.hasPreviousNotificationLog());
-        assertTrue(log.isArchived());
-    }
+		assertEquals(NotificationLogFactory.notificationsPerLog(), log.totalNotifications());
+		assertTrue(mockEventStore.countStoredEvents() >= log.totalNotifications());
+		assertTrue(log.hasNextNotificationLog());
+		assertFalse(log.hasPreviousNotificationLog());
+		assertTrue(log.isArchived());
+	}
 
-    @Test
-    public void testEncodedWithDecodedNavigationIds() throws Exception {
-        EventStore eventStore = this.eventStore();
-        NotificationLogFactory factory = new NotificationLogFactory(eventStore);
-        NotificationLog log = factory.createCurrentNotificationLog();
+	@Test
+	public void testPreviousOfCurrentNotificationLogFromFactory() {
 
-        String currentId = log.notificationLogId();
-        NotificationLogId decodedCurrentLogId = log.decodedNotificationLogId();
-        assertEquals(log.decodedNotificationLogId(), new NotificationLogId(currentId));
+		long totalEvents = mockEventStore.countStoredEvents();
+		boolean shouldBePrevious = totalEvents > (NotificationLogFactory.notificationsPerLog() * 2);
+		NotificationLogFactory factory = new NotificationLogFactory(mockEventStore);
+		NotificationLog log = factory.createCurrentNotificationLog();
 
-        String previousId = log.previousNotificationLogId();
-        NotificationLogId decodedPreviousLogId = log.decodedPreviousNotificationLogId();
-        assertEquals(decodedPreviousLogId, new NotificationLogId(previousId));
-        log = factory.createNotificationLog(log.decodedPreviousNotificationLogId());
+		NotificationLogId previousId = log.decodedPreviousNotificationLogId();
+		log = factory.createNotificationLog(previousId);
 
-        String nextId = log.nextNotificationLogId();
-        NotificationLogId decodedNextLogId = log.decodedNextNotificationLogId();
-        assertEquals(decodedNextLogId, new NotificationLogId(nextId));
-        assertEquals(decodedCurrentLogId, decodedNextLogId);
-    }
+		assertEquals(NotificationLogFactory.notificationsPerLog(), log.totalNotifications());
+		assertTrue(totalEvents >= log.totalNotifications());
+		assertTrue(log.hasNextNotificationLog());
+		assertEquals(shouldBePrevious, log.hasPreviousNotificationLog());
+		assertTrue(log.isArchived());
+	}
 
-    @Test
-    private EventStore eventStore() {
-        EventStore eventStore = new MockEventStore(new PersistenceManagerProvider() {});
+	@Test
+	public void testEncodedWithDecodedNavigationIds() {
 
-        assertNotNull(eventStore);
+		NotificationLogFactory factory = new NotificationLogFactory(mockEventStore);
+		NotificationLog log = factory.createCurrentNotificationLog();
 
-        return eventStore;
-    }
+		String currentId = log.notificationLogId();
+		NotificationLogId decodedCurrentLogId = log.decodedNotificationLogId();
+		assertEquals(log.decodedNotificationLogId(), new NotificationLogId(currentId));
+
+		String previousId = log.previousNotificationLogId();
+		NotificationLogId decodedPreviousLogId = log.decodedPreviousNotificationLogId();
+		assertEquals(decodedPreviousLogId, new NotificationLogId(previousId));
+		log = factory.createNotificationLog(log.decodedPreviousNotificationLogId());
+
+		String nextId = log.nextNotificationLogId();
+		NotificationLogId decodedNextLogId = log.decodedNextNotificationLogId();
+		assertEquals(decodedNextLogId, new NotificationLogId(nextId));
+		assertEquals(decodedCurrentLogId, decodedNextLogId);
+	}
 }
