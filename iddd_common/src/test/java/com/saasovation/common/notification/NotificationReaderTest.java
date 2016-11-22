@@ -14,157 +14,174 @@
 
 package com.saasovation.common.notification;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.saasovation.common.domain.model.DomainEvent;
 import com.saasovation.common.event.TestableDomainEvent;
 import com.saasovation.common.event.TestableNavigableDomainEvent;
 
-public class NotificationReaderTest extends TestCase {
+@RunWith(SpringJUnit4ClassRunner.class)
+public class NotificationReaderTest {
 
-    public NotificationReaderTest() {
-        super();
-    }
+	@Test
+	public void testReadBasicProperties() {
+		DomainEvent domainEvent = new TestableDomainEvent(100, "testing");
 
-    public void testReadBasicProperties() throws Exception {
-        DomainEvent domainEvent = new TestableDomainEvent(100, "testing");
+		Notification notification = new Notification(1, domainEvent);
 
-        Notification notification = new Notification(1, domainEvent);
+		NotificationSerializer serializer = NotificationSerializer.instance();
 
-        NotificationSerializer serializer = NotificationSerializer.instance();
+		String serializedNotification = serializer.serialize(notification);
 
-        String serializedNotification = serializer.serialize(notification);
+		NotificationReader reader = new NotificationReader(serializedNotification);
 
-        NotificationReader reader = new NotificationReader(serializedNotification);
+		assertEquals(1L, reader.notificationId());
+		assertEquals("1", reader.notificationIdAsString());
+		assertEquals(domainEvent.occurredOn(), reader.occurredOn());
+		assertEquals(notification.typeName(), reader.typeName());
+		assertEquals(notification.version(), reader.version());
+		assertEquals(domainEvent.eventVersion(), reader.version());
+	}
 
-        assertEquals(1L, reader.notificationId());
-        assertEquals("1", reader.notificationIdAsString());
-        assertEquals(domainEvent.occurredOn(), reader.occurredOn());
-        assertEquals(notification.typeName(), reader.typeName());
-        assertEquals(notification.version(), reader.version());
-        assertEquals(domainEvent.eventVersion(), reader.version());
-    }
+	@Test
+	public void testReadDomainEventProperties() {
+		TestableDomainEvent domainEvent = new TestableDomainEvent(100, "testing");
 
-    public void testReadDomainEventProperties() throws Exception {
-        TestableDomainEvent domainEvent = new TestableDomainEvent(100, "testing");
+		Notification notification = new Notification(1, domainEvent);
 
-        Notification notification = new Notification(1, domainEvent);
+		NotificationSerializer serializer = NotificationSerializer.instance();
 
-        NotificationSerializer serializer = NotificationSerializer.instance();
+		String serializedNotification = serializer.serialize(notification);
 
-        String serializedNotification = serializer.serialize(notification);
+		NotificationReader reader = new NotificationReader(serializedNotification);
 
-        NotificationReader reader = new NotificationReader(serializedNotification);
+		assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("eventVersion"));
+		assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("/eventVersion"));
+		assertEquals("" + domainEvent.id(), reader.eventStringValue("id"));
+		assertEquals("" + domainEvent.id(), reader.eventStringValue("/id"));
+		assertEquals("" + domainEvent.name(), reader.eventStringValue("name"));
+		assertEquals("" + domainEvent.name(), reader.eventStringValue("/name"));
+		assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("occurredOn"));
+		assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("/occurredOn"));
+	}
 
-        assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("eventVersion"));
-        assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("/eventVersion"));
-        assertEquals("" + domainEvent.id(), reader.eventStringValue("id"));
-        assertEquals("" + domainEvent.id(), reader.eventStringValue("/id"));
-        assertEquals("" + domainEvent.name(), reader.eventStringValue("name"));
-        assertEquals("" + domainEvent.name(), reader.eventStringValue("/name"));
-        assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("occurredOn"));
-        assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("/occurredOn"));
-    }
+	@Test
+	public void testReadNestedDomainEventProperties() {
+		TestableNavigableDomainEvent domainEvent = new TestableNavigableDomainEvent(100, "testing");
 
-    public void testReadNestedDomainEventProperties() throws Exception {
-        TestableNavigableDomainEvent domainEvent = new TestableNavigableDomainEvent(100, "testing");
+		Notification notification = new Notification(1, domainEvent);
 
-        Notification notification = new Notification(1, domainEvent);
+		NotificationSerializer serializer = NotificationSerializer.instance();
 
-        NotificationSerializer serializer = NotificationSerializer.instance();
+		String serializedNotification = serializer.serialize(notification);
 
-        String serializedNotification = serializer.serialize(notification);
+		NotificationReader reader = new NotificationReader(serializedNotification);
 
-        NotificationReader reader = new NotificationReader(serializedNotification);
+		assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("eventVersion"));
+		assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("/eventVersion"));
+		assertEquals(domainEvent.eventVersion(), reader.eventIntegerValue("eventVersion").intValue());
+		assertEquals(domainEvent.eventVersion(), reader.eventIntegerValue("/eventVersion").intValue());
+		assertEquals("" + domainEvent.nestedEvent().eventVersion(),
+				reader.eventStringValue("nestedEvent", "eventVersion"));
+		assertEquals("" + domainEvent.nestedEvent().eventVersion(),
+				reader.eventStringValue("/nestedEvent/eventVersion"));
+		assertEquals(domainEvent.nestedEvent().eventVersion(),
+				reader.eventIntegerValue("nestedEvent", "eventVersion").intValue());
+		assertEquals(domainEvent.nestedEvent().eventVersion(),
+				reader.eventIntegerValue("/nestedEvent/eventVersion").intValue());
+		assertEquals("" + domainEvent.nestedEvent().id(), reader.eventStringValue("nestedEvent", "id"));
+		assertEquals("" + domainEvent.nestedEvent().id(), reader.eventStringValue("/nestedEvent/id"));
+		assertEquals(domainEvent.nestedEvent().id(), reader.eventLongValue("nestedEvent", "id").longValue());
+		assertEquals(domainEvent.nestedEvent().id(), reader.eventLongValue("/nestedEvent/id").longValue());
+		assertEquals("" + domainEvent.nestedEvent().name(), reader.eventStringValue("nestedEvent", "name"));
+		assertEquals("" + domainEvent.nestedEvent().name(), reader.eventStringValue("/nestedEvent/name"));
+		assertEquals("" + domainEvent.nestedEvent().occurredOn().getTime(),
+				reader.eventStringValue("nestedEvent", "occurredOn"));
+		assertEquals("" + domainEvent.nestedEvent().occurredOn().getTime(),
+				reader.eventStringValue("/nestedEvent/occurredOn"));
+		assertEquals(domainEvent.nestedEvent().occurredOn(), reader.eventDateValue("nestedEvent", "occurredOn"));
+		assertEquals(domainEvent.nestedEvent().occurredOn(), reader.eventDateValue("/nestedEvent/occurredOn"));
+		assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("occurredOn"));
+		assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("/occurredOn"));
+		assertEquals(domainEvent.occurredOn(), reader.eventDateValue("occurredOn"));
+		assertEquals(domainEvent.occurredOn(), reader.eventDateValue("/occurredOn"));
+	}
 
-        assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("eventVersion"));
-        assertEquals("" + domainEvent.eventVersion(), reader.eventStringValue("/eventVersion"));
-        assertEquals(domainEvent.eventVersion(), reader.eventIntegerValue("eventVersion").intValue());
-        assertEquals(domainEvent.eventVersion(), reader.eventIntegerValue("/eventVersion").intValue());
-        assertEquals("" + domainEvent.nestedEvent().eventVersion(), reader.eventStringValue("nestedEvent", "eventVersion"));
-        assertEquals("" + domainEvent.nestedEvent().eventVersion(), reader.eventStringValue("/nestedEvent/eventVersion"));
-        assertEquals(domainEvent.nestedEvent().eventVersion(), reader.eventIntegerValue("nestedEvent", "eventVersion").intValue());
-        assertEquals(domainEvent.nestedEvent().eventVersion(), reader.eventIntegerValue("/nestedEvent/eventVersion").intValue());
-        assertEquals("" + domainEvent.nestedEvent().id(), reader.eventStringValue("nestedEvent", "id"));
-        assertEquals("" + domainEvent.nestedEvent().id(), reader.eventStringValue("/nestedEvent/id"));
-        assertEquals(domainEvent.nestedEvent().id(), reader.eventLongValue("nestedEvent", "id").longValue());
-        assertEquals(domainEvent.nestedEvent().id(), reader.eventLongValue("/nestedEvent/id").longValue());
-        assertEquals("" + domainEvent.nestedEvent().name(), reader.eventStringValue("nestedEvent", "name"));
-        assertEquals("" + domainEvent.nestedEvent().name(), reader.eventStringValue("/nestedEvent/name"));
-        assertEquals("" + domainEvent.nestedEvent().occurredOn().getTime(), reader.eventStringValue("nestedEvent", "occurredOn"));
-        assertEquals("" + domainEvent.nestedEvent().occurredOn().getTime(), reader.eventStringValue("/nestedEvent/occurredOn"));
-        assertEquals(domainEvent.nestedEvent().occurredOn(), reader.eventDateValue("nestedEvent", "occurredOn"));
-        assertEquals(domainEvent.nestedEvent().occurredOn(), reader.eventDateValue("/nestedEvent/occurredOn"));
-        assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("occurredOn"));
-        assertEquals("" + domainEvent.occurredOn().getTime(), reader.eventStringValue("/occurredOn"));
-        assertEquals(domainEvent.occurredOn(), reader.eventDateValue("occurredOn"));
-        assertEquals(domainEvent.occurredOn(), reader.eventDateValue("/occurredOn"));
-    }
+	@Test
+	public void testDotNotation() {
+		TestableNavigableDomainEvent domainEvent = new TestableNavigableDomainEvent(100, "testing");
 
-    public void testDotNotation() throws Exception {
-        TestableNavigableDomainEvent domainEvent = new TestableNavigableDomainEvent(100, "testing");
+		Notification notification = new Notification(1, domainEvent);
 
-        Notification notification = new Notification(1, domainEvent);
+		NotificationSerializer serializer = NotificationSerializer.instance();
 
-        NotificationSerializer serializer = NotificationSerializer.instance();
+		String serializedNotification = serializer.serialize(notification);
 
-        String serializedNotification = serializer.serialize(notification);
+		NotificationReader reader = new NotificationReader(serializedNotification);
 
-        NotificationReader reader = new NotificationReader(serializedNotification);
+		assertEquals("" + domainEvent.nestedEvent().eventVersion(),
+				reader.eventStringValue("nestedEvent.eventVersion"));
+		assertEquals(domainEvent.nestedEvent().eventVersion(),
+				reader.eventIntegerValue("nestedEvent.eventVersion").intValue());
+	}
 
-        assertEquals("" + domainEvent.nestedEvent().eventVersion(), reader.eventStringValue("nestedEvent.eventVersion"));
-        assertEquals(domainEvent.nestedEvent().eventVersion(), reader.eventIntegerValue("nestedEvent.eventVersion").intValue());
-    }
+	@Test
+	public void testReadBogusProperties() {
+		TestableNavigableDomainEvent domainEvent = new TestableNavigableDomainEvent(100L, "testing");
 
-    public void testReadBogusProperties() throws Exception {
-        TestableNavigableDomainEvent domainEvent = new TestableNavigableDomainEvent(100L, "testing");
+		Notification notification = new Notification(1, domainEvent);
 
-        Notification notification = new Notification(1, domainEvent);
+		NotificationSerializer serializer = NotificationSerializer.instance();
 
-        NotificationSerializer serializer = NotificationSerializer.instance();
+		String serializedNotification = serializer.serialize(notification);
 
-        String serializedNotification = serializer.serialize(notification);
+		NotificationReader reader = new NotificationReader(serializedNotification);
 
-        NotificationReader reader = new NotificationReader(serializedNotification);
+		boolean mustThrow = false;
 
-        boolean mustThrow = false;
+		try {
+			reader.eventStringValue("eventVersion.version");
+		} catch (Exception e) {
+			mustThrow = true;
+		}
 
-        try {
-            reader.eventStringValue("eventVersion.version");
-        } catch (Exception e) {
-            mustThrow = true;
-        }
+		assertTrue(mustThrow);
+	}
 
-        assertTrue(mustThrow);
-    }
+	@Test
+	public void testReadNullProperties() {
+		TestableNullPropertyDomainEvent domainEvent = new TestableNullPropertyDomainEvent(100L, "testingNulls");
 
-    public void testReadNullProperties() throws Exception {
-        TestableNullPropertyDomainEvent domainEvent = new TestableNullPropertyDomainEvent(100L, "testingNulls");
+		Notification notification = new Notification(1, domainEvent);
 
-        Notification notification = new Notification(1, domainEvent);
+		NotificationSerializer serializer = NotificationSerializer.instance();
 
-        NotificationSerializer serializer = NotificationSerializer.instance();
+		String serializedNotification = serializer.serialize(notification);
 
-        String serializedNotification = serializer.serialize(notification);
+		NotificationReader reader = new NotificationReader(serializedNotification);
 
-        NotificationReader reader = new NotificationReader(serializedNotification);
+		assertNull(reader.eventStringValue("textMustBeNull"));
 
-        assertNull(reader.eventStringValue("textMustBeNull"));
+		assertNull(reader.eventStringValue("textMustBeNull2"));
 
-        assertNull(reader.eventStringValue("textMustBeNull2"));
+		assertNull(reader.eventIntegerValue("numberMustBeNull"));
 
-        assertNull(reader.eventIntegerValue("numberMustBeNull"));
+		assertNull(reader.eventStringValue("nested.nestedTextMustBeNull"));
 
-        assertNull(reader.eventStringValue("nested.nestedTextMustBeNull"));
+		assertNull(reader.eventStringValue("nullNested.nestedTextMustBeNull"));
 
-        assertNull(reader.eventStringValue("nullNested.nestedTextMustBeNull"));
+		assertNull(reader.eventStringValue("nested.nestedDeeply.nestedDeeplyTextMustBeNull"));
 
-        assertNull(reader.eventStringValue("nested.nestedDeeply.nestedDeeplyTextMustBeNull"));
+		assertNull(reader.eventStringValue("nested.nestedDeeply.nestedDeeplyTextMustBeNull2"));
 
-        assertNull(reader.eventStringValue("nested.nestedDeeply.nestedDeeplyTextMustBeNull2"));
+		assertNull(reader.eventStringValue("nested.nullNestedDeeply.nestedDeeplyTextMustBeNull"));
 
-        assertNull(reader.eventStringValue("nested.nullNestedDeeply.nestedDeeplyTextMustBeNull"));
-
-        assertNull(reader.eventStringValue("nested.nullNestedDeeply.nestedDeeplyTextMustBeNull2"));
-    }
+		assertNull(reader.eventStringValue("nested.nullNestedDeeply.nestedDeeplyTextMustBeNull2"));
+	}
 }

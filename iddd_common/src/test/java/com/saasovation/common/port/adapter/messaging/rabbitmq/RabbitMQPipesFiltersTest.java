@@ -14,11 +14,18 @@
 
 package com.saasovation.common.port.adapter.messaging.rabbitmq;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.saasovation.common.notification.Notification;
 import com.saasovation.common.notification.NotificationReader;
@@ -28,7 +35,8 @@ import com.saasovation.common.port.adapter.messaging.AllPhoneNumbersListed;
 import com.saasovation.common.port.adapter.messaging.MatchedPhoneNumbersCounted;
 import com.saasovation.common.port.adapter.messaging.PhoneNumbersMatched;
 
-public class RabbitMQPipesFiltersTest extends TestCase {
+@RunWith(SpringJUnit4ClassRunner.class)
+public class RabbitMQPipesFiltersTest {
 
     private ExchangeListener matchtedPhoneNumberCounter;
     private PhoneNumberExecutive phoneNumberExecutive;
@@ -44,14 +52,9 @@ public class RabbitMQPipesFiltersTest extends TestCase {
         "303-555-9999   Sally"
     };
 
-    public RabbitMQPipesFiltersTest() {
-        super();
-    }
-
-    public void testPhoneNumbersCounter() throws Exception {
+    @Test
+    public void testPhoneNumbersCounter(){
         String processId = this.phoneNumberExecutive.start(phoneNumbers);
-
-        Thread.sleep(500L);
 
         PhoneNumberProcess process =
                 this.phoneNumberExecutive.processOfId(processId);
@@ -61,26 +64,22 @@ public class RabbitMQPipesFiltersTest extends TestCase {
         assertEquals(6, process.totalPhoneNumbers());
     }
 
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() {
 
         phoneNumberExecutive = new PhoneNumberExecutive();
         phoneNumberFinder = new PhoneNumberFinder();
         matchtedPhoneNumberCounter = new MatchtedPhoneNumberCounter();
         totalPhoneNumbersCounter = new TotalPhoneNumbersCounter();
-
-        super.setUp();
     }
 
-    @Override
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() {
 
         phoneNumberExecutive.close();
         phoneNumberFinder.close();
         matchtedPhoneNumberCounter.close();
         totalPhoneNumbersCounter.close();
-
-        super.tearDown();
     }
 
     private MessageProducer messageProducer() {
