@@ -23,8 +23,6 @@ import com.saasovation.common.CommonTestCase;
 import com.saasovation.common.event.EventStore;
 import com.saasovation.common.event.MockEventStore;
 import com.saasovation.common.persistence.PersistenceManagerProvider;
-import com.saasovation.common.port.adapter.notification.RabbitMQNotificationPublisher;
-import com.saasovation.common.port.adapter.persistence.hibernate.HibernatePublishedNotificationTrackerStore;
 
 //
 

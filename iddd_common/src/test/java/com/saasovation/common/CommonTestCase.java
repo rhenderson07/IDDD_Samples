@@ -14,28 +14,16 @@
 
 package com.saasovation.common;
 
-import junit.framework.TestCase;
-
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.hibernate.annotations.SelectBeforeUpdate;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import com.saasovation.common.domain.model.DomainEventPublisher;
-import com.saasovation.common.spring.SpringHibernateSessionProvider;
-
-//
-
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
-import org.junit.Rule;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
-//
+
+import com.saasovation.common.domain.model.DomainEventPublisher;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = CommonTestConfig.class)
@@ -43,23 +31,9 @@ public abstract class CommonTestCase {
 	@Rule
 	public TestName name = new TestName();
 
-	protected ApplicationContext applicationContext;
-	protected SpringHibernateSessionProvider sessionProvider;
-
-	public CommonTestCase() {
-		super();
-	}
-
 	@Before
 	public void setUp() {
-
 		DomainEventPublisher.instance().reset();
-
-//		this.applicationContext = new ClassPathXmlApplicationContext("applicationContext-common.xml");
-//
-//		this.sessionProvider = (SpringHibernateSessionProvider) this.applicationContext.getBean("sessionProvider");
-//
-//		this.setTransaction(this.session().beginTransaction());
 
 		System.out.println(">>>>>>>>>>>>>>>>>>>> (start)" + name.getMethodName());
 	}
