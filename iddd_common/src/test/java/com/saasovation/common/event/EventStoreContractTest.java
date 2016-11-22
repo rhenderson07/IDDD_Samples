@@ -17,6 +17,11 @@ package com.saasovation.common.event;
 import com.saasovation.common.CommonTestCase;
 import com.saasovation.common.persistence.PersistenceManagerProvider;
 
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
+
 public class EventStoreContractTest extends CommonTestCase {
 
     public EventStoreContractTest() {

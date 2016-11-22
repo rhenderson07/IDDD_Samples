@@ -15,6 +15,8 @@
 package com.saasovation.agilepm.domain.model;
 
 import org.iq80.leveldb.DB;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 import com.saasovation.agilepm.domain.model.product.ProductRepository;
 import com.saasovation.agilepm.domain.model.product.backlogitem.BacklogItemRepository;
@@ -37,6 +39,8 @@ import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBProvider;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
 public abstract class DomainTest extends EventTrackingTestCase {
+	@Rule
+	public TestName name = new TestName();
 
     protected BacklogItemRepository backlogItemRepository;
     protected DB database;
@@ -47,13 +51,10 @@ public abstract class DomainTest extends EventTrackingTestCase {
     protected TeamMemberRepository teamMemberRepository;
     protected TeamRepository teamRepository;
 
-    public DomainTest() {
-        super();
-    }
+    @Override
+    public void setUp() throws Exception {
 
-    protected void setUp() throws Exception {
-
-        System.out.println(">>>>>>>>>>>>>>>>>>>> " + this.getName());
+        System.out.println(">>>>>>>>>>>>>>>>>>>> " + name.getMethodName());
 
         DomainEventPublisher.instance().reset();
 
@@ -74,7 +75,8 @@ public abstract class DomainTest extends EventTrackingTestCase {
         super.setUp();
     }
 
-    protected void tearDown() throws Exception {
+    @Override
+    public void tearDown() throws Exception {
 
         System.out.println("<<<<<<<<<<<<<<<<<<<< (done)");
 

@@ -14,6 +14,13 @@
 
 package com.saasovation.common.domain.model.process;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
 import com.saasovation.common.CommonTestCase;
 import com.saasovation.common.domain.model.DomainEventPublisher;
 import com.saasovation.common.domain.model.DomainEventSubscriber;
@@ -21,57 +28,50 @@ import com.saasovation.common.domain.model.process.Process.ProcessCompletionType
 
 public class TimeConstrainedProcessTest extends CommonTestCase {
 
-    private static final String TENANT_ID = "1234567890";
+	private static final String TENANT_ID = "1234567890";
 
-    private TestableTimeConstrainedProcess process;
-    private boolean received;
+	private TestableTimeConstrainedProcess process;
+	private boolean received;
 
-    public TimeConstrainedProcessTest() {
-        super();
-    }
+	@Test
+	public void testCompletedProcess() {
+		DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<TestableTimeConstrainedProcessTimedOut>() {
 
-    public void testCompletedProcess() throws Exception {
-        DomainEventPublisher.instance().subscribe(new DomainEventSubscriber<TestableTimeConstrainedProcessTimedOut>() {
+			@Override
+			public void handleEvent(TestableTimeConstrainedProcessTimedOut aDomainEvent) {
+				received = true;
+				process.informTimeout(aDomainEvent.occurredOn());
+			}
 
-            @Override
-            public void handleEvent(TestableTimeConstrainedProcessTimedOut aDomainEvent) {
-                received = true;
-                process.informTimeout(aDomainEvent.occurredOn());
-            }
+			@Override
+			public Class<TestableTimeConstrainedProcessTimedOut> subscribedToEventType() {
+				return TestableTimeConstrainedProcessTimedOut.class;
+			}
+		});
 
-            @Override
-            public Class<TestableTimeConstrainedProcessTimedOut> subscribedToEventType() {
-                return TestableTimeConstrainedProcessTimedOut.class;
-            }
-        });
+		process = new TestableTimeConstrainedProcess(TENANT_ID, ProcessId.newProcessId(),
+				"Testable Time Constrained Process", 5000L);
 
-        process = new TestableTimeConstrainedProcess(
-                TENANT_ID,
-                ProcessId.newProcessId(),
-                "Testable Time Constrained Process",
-                5000L);
+		TimeConstrainedProcessTracker tracker = process.timeConstrainedProcessTracker();
 
-        TimeConstrainedProcessTracker tracker =
-                process.timeConstrainedProcessTracker();
+		process.confirm1();
 
-        process.confirm1();
+		assertFalse(received);
+		assertFalse(process.isCompleted());
+		assertFalse(process.didProcessingComplete());
+		assertEquals(ProcessCompletionType.NotCompleted, process.processCompletionType());
 
-        assertFalse(received);
-        assertFalse(process.isCompleted());
-        assertFalse(process.didProcessingComplete());
-        assertEquals(ProcessCompletionType.NotCompleted, process.processCompletionType());
+		process.confirm2();
 
-        process.confirm2();
+		assertFalse(received);
+		assertTrue(process.isCompleted());
+		assertTrue(process.didProcessingComplete());
+		assertEquals(ProcessCompletionType.CompletedNormally, process.processCompletionType());
+		assertNull(process.timedOutDate());
 
-        assertFalse(received);
-        assertTrue(process.isCompleted());
-        assertTrue(process.didProcessingComplete());
-        assertEquals(ProcessCompletionType.CompletedNormally, process.processCompletionType());
-        assertNull(process.timedOutDate());
+		tracker.informProcessTimedOut();
 
-        tracker.informProcessTimedOut();
-
-        assertFalse(received);
-        assertFalse(process.isTimedOut());
-    }
+		assertFalse(received);
+		assertFalse(process.isTimedOut());
+	}
 }

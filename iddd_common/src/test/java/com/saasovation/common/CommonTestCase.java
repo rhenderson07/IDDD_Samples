@@ -18,61 +18,76 @@ import junit.framework.TestCase;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.annotations.SelectBeforeUpdate;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.saasovation.common.domain.model.DomainEventPublisher;
 import com.saasovation.common.spring.SpringHibernateSessionProvider;
 
-public abstract class CommonTestCase extends TestCase {
+//
 
-    protected ApplicationContext applicationContext;
-    protected SpringHibernateSessionProvider sessionProvider;
-    private Transaction transaction;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
+import org.junit.Rule;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.support.AnnotationConfigContextLoader;
+//
 
-    public CommonTestCase() {
-        super();
-    }
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = CommonTestConfig.class)
+public abstract class CommonTestCase {
+	@Rule
+	public TestName name = new TestName();
 
-    protected Session session() {
-        Session session = this.sessionProvider.session();
+	protected ApplicationContext applicationContext;
+	protected SpringHibernateSessionProvider sessionProvider;
+	private Transaction transaction;
 
-        return session;
-    }
+	public CommonTestCase() {
+		super();
+	}
 
-    protected Transaction transaction() {
-        return this.transaction;
-    }
+	protected Session session() {
+		Session session = this.sessionProvider.session();
 
-    protected void setUp() throws Exception {
+		return session;
+	}
 
-        DomainEventPublisher.instance().reset();
+	protected Transaction transaction() {
+		return this.transaction;
+	}
 
-        this.applicationContext = new ClassPathXmlApplicationContext("applicationContext-common.xml");
+	@Before
+	public void setUp() {
 
-        this.sessionProvider = (SpringHibernateSessionProvider) this.applicationContext.getBean("sessionProvider");
+		DomainEventPublisher.instance().reset();
 
-        this.setTransaction(this.session().beginTransaction());
+//		this.applicationContext = new ClassPathXmlApplicationContext("applicationContext-common.xml");
+//
+//		this.sessionProvider = (SpringHibernateSessionProvider) this.applicationContext.getBean("sessionProvider");
+//
+//		this.setTransaction(this.session().beginTransaction());
 
-        System.out.println(">>>>>>>>>>>>>>>>>>>> (start)" + this.getName());
+		System.out.println(">>>>>>>>>>>>>>>>>>>> (start)" + name.getMethodName());
+	}
 
-        super.setUp();
-    }
+	@After
+	public void tearDown() {
 
-    protected void tearDown() throws Exception {
+//		this.transaction().rollback();
+//
+//		this.setTransaction(null);
+//
+//		this.session().clear();
 
-        this.transaction().rollback();
+		System.out.println("<<<<<<<<<<<<<<<<<<<< (end)");
+	}
 
-        this.setTransaction(null);
-
-        this.session().clear();
-
-        System.out.println("<<<<<<<<<<<<<<<<<<<< (end)");
-
-        super.tearDown();
-    }
-
-    private void setTransaction(Transaction aTransaction) {
-        this.transaction = aTransaction;
-    }
+	private void setTransaction(Transaction aTransaction) {
+		this.transaction = aTransaction;
+	}
 }

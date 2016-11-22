@@ -16,6 +16,8 @@ package com.saasovation.common.port.adapter.messaging.rabbitmq;
 
 import java.util.Date;
 
+import org.junit.Before;
+
 import com.saasovation.common.CommonTestCase;
 import com.saasovation.common.domain.model.DomainEvent;
 import com.saasovation.common.domain.model.DomainEventPublisher;
@@ -27,6 +29,9 @@ import com.saasovation.common.persistence.PersistenceManagerProvider;
 import com.saasovation.common.port.adapter.notification.RabbitMQNotificationPublisher;
 import com.saasovation.common.port.adapter.persistence.hibernate.HibernateEventStore;
 import com.saasovation.common.port.adapter.persistence.hibernate.HibernatePublishedNotificationTrackerStore;
+
+
+import static org.junit.Assert.assertNotNull;
 
 public class RabbitMQNotificationPublisherTest extends CommonTestCase {
 
@@ -55,8 +60,9 @@ public class RabbitMQNotificationPublisherTest extends CommonTestCase {
         notificationPublisher.publishNotifications();
     }
 
+    @Before
     @Override
-    protected void setUp() throws Exception {
+    public void setUp(){
         DomainEventPublisher.instance().reset();
 
         super.setUp();

@@ -14,6 +14,13 @@
 
 package com.saasovation.common.notification;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
 import com.saasovation.common.CommonTestCase;
 import com.saasovation.common.event.EventStore;
 import com.saasovation.common.event.MockEventStore;
@@ -25,6 +32,7 @@ public class NotificationLogTest extends CommonTestCase {
         super();
     }
 
+    @Test
     public void testCurrentNotificationLogFromFactory() throws Exception {
         EventStore eventStore = this.eventStore();
         NotificationLogFactory factory = new NotificationLogFactory(eventStore);
@@ -37,6 +45,7 @@ public class NotificationLogTest extends CommonTestCase {
         assertFalse(log.isArchived());
     }
 
+    @Test
     public void testFirstNotificationLogFromFactory() throws Exception {
         EventStore eventStore = this.eventStore();
         NotificationLogId id = NotificationLogId.first(NotificationLogFactory.notificationsPerLog());
@@ -50,6 +59,7 @@ public class NotificationLogTest extends CommonTestCase {
         assertTrue(log.isArchived());
     }
 
+    @Test
     public void testPreviousOfCurrentNotificationLogFromFactory() throws Exception {
         EventStore eventStore = this.eventStore();
         long totalEvents = eventStore.countStoredEvents();
@@ -67,6 +77,7 @@ public class NotificationLogTest extends CommonTestCase {
         assertTrue(log.isArchived());
     }
 
+    @Test
     public void testEncodedWithDecodedNavigationIds() throws Exception {
         EventStore eventStore = this.eventStore();
         NotificationLogFactory factory = new NotificationLogFactory(eventStore);
@@ -87,6 +98,7 @@ public class NotificationLogTest extends CommonTestCase {
         assertEquals(decodedCurrentLogId, decodedNextLogId);
     }
 
+    @Test
     private EventStore eventStore() {
         EventStore eventStore = new MockEventStore(new PersistenceManagerProvider() {});
 
