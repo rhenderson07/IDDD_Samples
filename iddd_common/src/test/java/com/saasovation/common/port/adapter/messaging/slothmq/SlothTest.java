@@ -14,37 +14,44 @@
 
 package com.saasovation.common.port.adapter.messaging.slothmq;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashSet;
 import java.util.Set;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
 import com.saasovation.common.domain.model.DomainEventPublisher;
 
-import junit.framework.TestCase;
-
-public class SlothTest extends TestCase {
+@RunWith(SpringJUnit4ClassRunner.class)
+public class SlothTest{
 
 	private ExchangePublisher publisher;
 	private TestExchangeListener testExchangeListener;
 
-	public SlothTest() {
-		super();
-	}
-
-	public void testPublishSubscribe() throws Exception {
+	@Test
+	public void testPublishSubscribe() {
 		this.publisher.publish("my.test.type", "A tiny little message.");
 		this.publisher.publish("my.test.type1", "A slightly bigger message.");
 		this.publisher.publish("my.test.type2", "An even bigger message, still.");
 		this.publisher.publish("my.test.type3", "An even bigger (bigger!) message, still.");
 
-		Thread.sleep(1000L);
+		try {
+			Thread.sleep(1000L);
+		} catch (InterruptedException e) {
+		}
 
 		assertEquals("my.test.type", testExchangeListener.receivedType());
 		assertEquals("A tiny little message.", testExchangeListener.receivedMessage());
 		assertEquals(4, TestExchangeListenerAgain.uniqueMessages().size());
 	}
 
-	@Override
-	protected void setUp() throws Exception {
+	@Before
+	public void setUp() {
         DomainEventPublisher.instance().reset();
 
 		SlothServer.executeInProcessDetachedServer();
@@ -58,12 +65,10 @@ public class SlothTest extends TestCase {
 		SlothClient.instance().register(new TestExchangeListenerAgain());
 
 		this.publisher = new ExchangePublisher("TestExchange");
-
-		super.setUp();
 	}
 
-	@Override
-	protected void tearDown() throws Exception {
+	@After
+	public void tearDown() {
 		this.testExchangeListener.close();
 
 		SlothClient.instance().closeAll();

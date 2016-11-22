@@ -14,11 +14,18 @@
 
 package com.saasovation.common.port.adapter.messaging.slothmq;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.saasovation.common.domain.model.DomainEventPublisher;
 import com.saasovation.common.notification.Notification;
@@ -29,7 +36,8 @@ import com.saasovation.common.port.adapter.messaging.AllPhoneNumbersListed;
 import com.saasovation.common.port.adapter.messaging.MatchedPhoneNumbersCounted;
 import com.saasovation.common.port.adapter.messaging.PhoneNumbersMatched;
 
-public class SlothMQPipesFiltersTest extends TestCase {
+@RunWith(SpringJUnit4ClassRunner.class)
+public class SlothMQPipesFiltersTest {
 
     private ExchangePublisher publisher;
 
@@ -47,14 +55,14 @@ public class SlothMQPipesFiltersTest extends TestCase {
         "303-555-9999   Sally"
     };
 
-    public SlothMQPipesFiltersTest() {
-        super();
-    }
-
-    public void testPhoneNumbersCounter() throws Exception {
+    @Test
+    public void testPhoneNumbersCounter() {
         String processId = this.phoneNumberExecutive.start(phoneNumbers);
 
-        Thread.sleep(1000L);
+        try {
+			Thread.sleep(1000L);
+		} catch (InterruptedException e) {
+		}
 
         PhoneNumberProcess process = this.phoneNumberExecutive.processOfId(processId);
 
@@ -63,13 +71,16 @@ public class SlothMQPipesFiltersTest extends TestCase {
         assertEquals(6, process.totalPhoneNumbers());
     }
 
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() {
         DomainEventPublisher.instance().reset();
 
         SlothServer.executeInProcessDetachedServer();
 
-        Thread.sleep(500L);
+        try {
+			Thread.sleep(500L);
+		} catch (InterruptedException e) {
+		}
 
         phoneNumberExecutive = new PhoneNumberExecutive();
         phoneNumberFinder = new PhoneNumberFinder();
@@ -83,11 +94,10 @@ public class SlothMQPipesFiltersTest extends TestCase {
 
         this.publisher = new ExchangePublisher("PhoneNumberExchange");
 
-        super.setUp();
     }
 
-    @Override
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() {
 
         phoneNumberExecutive.close();
         phoneNumberFinder.close();
@@ -95,8 +105,6 @@ public class SlothMQPipesFiltersTest extends TestCase {
         totalPhoneNumbersCounter.close();
 
         SlothClient.instance().closeAll();
-
-        super.tearDown();
     }
 
     private void send(Notification aNotification) {

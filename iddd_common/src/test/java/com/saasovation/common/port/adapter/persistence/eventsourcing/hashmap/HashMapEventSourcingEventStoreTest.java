@@ -14,190 +14,205 @@
 
 package com.saasovation.common.port.adapter.persistence.eventsourcing.hashmap;
 
-import java.util.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-import junit.framework.TestCase;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
-import com.saasovation.common.domain.model.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.saasovation.common.domain.model.DomainEvent;
+import com.saasovation.common.domain.model.DomainEventPublisher;
 import com.saasovation.common.event.TestableDomainEvent;
-import com.saasovation.common.event.sourcing.*;
+import com.saasovation.common.event.sourcing.DispatchableDomainEvent;
+import com.saasovation.common.event.sourcing.EventStore;
+import com.saasovation.common.event.sourcing.EventStoreAppendException;
+import com.saasovation.common.event.sourcing.EventStoreException;
+import com.saasovation.common.event.sourcing.EventStream;
+import com.saasovation.common.event.sourcing.EventStreamId;
 
-public class HashMapEventSourcingEventStoreTest extends TestCase {
+@RunWith(SpringJUnit4ClassRunner.class)
+public class HashMapEventSourcingEventStoreTest {
 
-    private EventStore eventStore;
+	private EventStore eventStore;
 
-    public HashMapEventSourcingEventStoreTest() {
-        super();
-    }
+	@Test
+	public void testConnectAndClose() {
+		assertNotNull(eventStore);
+	}
 
-    public void testConnectAndClose() throws Exception {
-        assertNotNull(eventStore);
-    }
+	@Test
+	public void testAppend() {
+		assertNotNull(this.eventStore);
 
-    public void testAppend() throws Exception {
-        assertNotNull(this.eventStore);
+		List<DomainEvent> events = new ArrayList<DomainEvent>();
 
-        List<DomainEvent> events = new ArrayList<DomainEvent>();
+		for (int idx = 1; idx <= 2; ++idx) {
+			events.add(new TestableDomainEvent(idx, "Name: " + idx));
+		}
 
-        for (int idx = 1; idx <= 2; ++idx) {
-            events.add(new TestableDomainEvent(idx, "Name: " + idx));
-        }
+		EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
 
-        EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
+		this.eventStore.appendWith(eventId, events);
 
-        this.eventStore.appendWith(eventId, events);
+		EventStream eventStream = this.eventStore.fullEventStreamFor(eventId);
 
-        EventStream eventStream = this.eventStore.fullEventStreamFor(eventId);
+		assertEquals(2, eventStream.version());
+		assertEquals(2, eventStream.events().size());
 
-        assertEquals(2, eventStream.version());
-        assertEquals(2, eventStream.events().size());
+		for (int idx = 1; idx <= 2; ++idx) {
+			DomainEvent domainEvent = eventStream.events().get(idx - 1);
 
-        for (int idx = 1; idx <= 2; ++idx) {
-            DomainEvent domainEvent = eventStream.events().get(idx - 1);
+			assertEquals(idx, ((TestableDomainEvent) domainEvent).id());
+		}
+	}
 
-            assertEquals(idx, ((TestableDomainEvent) domainEvent).id());
-        }
-    }
+	@Test
+	public void testAppendWrongVersion() {
+		assertNotNull(this.eventStore);
 
-    public void testAppendWrongVersion() throws Exception {
-        assertNotNull(this.eventStore);
+		List<DomainEvent> events = new ArrayList<DomainEvent>();
 
-        List<DomainEvent> events = new ArrayList<DomainEvent>();
+		for (int idx = 1; idx <= 10; ++idx) {
+			events.add(new TestableDomainEvent(idx, "Name: " + idx));
+		}
 
-        for (int idx = 1; idx <= 10; ++idx) {
-            events.add(new TestableDomainEvent(idx, "Name: " + idx));
-        }
+		EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
 
-        EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
+		this.eventStore.appendWith(eventId, events);
 
-        this.eventStore.appendWith(eventId, events);
+		EventStream eventStream = this.eventStore.fullEventStreamFor(eventId);
 
-        EventStream eventStream = this.eventStore.fullEventStreamFor(eventId);
+		assertEquals(10, eventStream.version());
+		assertEquals(10, eventStream.events().size());
 
-        assertEquals(10, eventStream.version());
-        assertEquals(10, eventStream.events().size());
+		events.clear();
+		events.add(new TestableDomainEvent(11, "Name: " + 11));
 
-        events.clear();
-        events.add(new TestableDomainEvent(11, "Name: " + 11));
+		for (int idx = 0; idx < 3; ++idx) {
+			try {
+				this.eventStore.appendWith(eventId.withStreamVersion(8 + idx), events);
 
-        for (int idx = 0; idx < 3; ++idx) {
-            try {
-                this.eventStore.appendWith(eventId.withStreamVersion(8 + idx), events);
+				fail("Should have thrown an exception.");
 
-                fail("Should have thrown an exception.");
+			} catch (EventStoreAppendException e) {
+				// good
+			}
+		}
 
-            } catch (EventStoreAppendException e) {
-                // good
-            }
-        }
+		// this should succeed
 
-        // this should succeed
+		this.eventStore.appendWith(eventId.withStreamVersion(11), events);
+	}
 
-        this.eventStore.appendWith(eventId.withStreamVersion(11), events);
-    }
+	@Test
+	public void testEventsSince() {
+		assertNotNull(this.eventStore);
 
-    public void testEventsSince() throws Exception {
-        assertNotNull(this.eventStore);
+		List<DomainEvent> events = new ArrayList<DomainEvent>();
 
-        List<DomainEvent> events = new ArrayList<DomainEvent>();
+		for (int idx = 1; idx <= 10; ++idx) {
+			events.add(new TestableDomainEvent(idx, "Name: " + idx));
+		}
 
-        for (int idx = 1; idx <= 10; ++idx) {
-            events.add(new TestableDomainEvent(idx, "Name: " + idx));
-        }
+		EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
 
-        EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
+		this.eventStore.appendWith(eventId, events);
 
-        this.eventStore.appendWith(eventId, events);
+		List<DispatchableDomainEvent> loggedEvents = this.eventStore.eventsSince(2);
 
-        List<DispatchableDomainEvent> loggedEvents = this.eventStore.eventsSince(2);
+		assertEquals(8, loggedEvents.size());
+	}
 
-        assertEquals(8, loggedEvents.size());
-    }
+	@Test
+	public void testEventStreamSince() {
+		assertNotNull(this.eventStore);
 
-    public void testEventStreamSince() throws Exception {
-        assertNotNull(this.eventStore);
+		List<DomainEvent> events = new ArrayList<DomainEvent>();
 
-        List<DomainEvent> events = new ArrayList<DomainEvent>();
+		for (int idx = 1; idx <= 10; ++idx) {
+			events.add(new TestableDomainEvent(idx, "Name: " + idx));
+		}
 
-        for (int idx = 1; idx <= 10; ++idx) {
-            events.add(new TestableDomainEvent(idx, "Name: " + idx));
-        }
+		EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
 
-        EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
+		this.eventStore.appendWith(eventId, events);
 
-        this.eventStore.appendWith(eventId, events);
+		for (int idx = 10; idx >= 1; --idx) {
+			EventStream eventStream = this.eventStore.eventStreamSince(eventId.withStreamVersion(idx));
 
-        for (int idx = 10; idx >= 1; --idx) {
-            EventStream eventStream = this.eventStore.eventStreamSince(eventId.withStreamVersion(idx));
+			assertEquals(10, eventStream.version());
+			assertEquals(10 - idx + 1, eventStream.events().size());
 
-            assertEquals(10, eventStream.version());
-            assertEquals(10 - idx + 1, eventStream.events().size());
+			DomainEvent domainEvent = eventStream.events().get(0);
 
-            DomainEvent domainEvent = eventStream.events().get(0);
+			assertEquals(idx, ((TestableDomainEvent) domainEvent).id());
+		}
 
-            assertEquals(idx, ((TestableDomainEvent) domainEvent).id());
-        }
+		try {
+			this.eventStore.eventStreamSince(eventId.withStreamVersion(11));
 
-        try {
-            this.eventStore.eventStreamSince(eventId.withStreamVersion(11));
+			fail("Should have thrown an exception.");
 
-            fail("Should have thrown an exception.");
+		} catch (EventStoreException e) {
+			// good
+		}
+	}
 
-        } catch (EventStoreException e) {
-            // good
-        }
-    }
+	@Test
+	public void testFullEventStreamForStreamName() {
+		assertNotNull(this.eventStore);
 
-    public void testFullEventStreamForStreamName() throws Exception {
-        assertNotNull(this.eventStore);
+		List<DomainEvent> events = new ArrayList<DomainEvent>();
 
-        List<DomainEvent> events = new ArrayList<DomainEvent>();
+		for (int idx = 1; idx <= 3; ++idx) {
+			events.add(new TestableDomainEvent(idx, "Name: " + idx));
+		}
 
-        for (int idx = 1; idx <= 3; ++idx) {
-            events.add(new TestableDomainEvent(idx, "Name: " + idx));
-        }
+		EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
 
-        EventStreamId eventId = new EventStreamId(UUID.randomUUID().toString());
+		this.eventStore.appendWith(eventId, events);
 
-        this.eventStore.appendWith(eventId, events);
+		EventStream eventStream = this.eventStore.fullEventStreamFor(eventId);
 
-        EventStream eventStream = this.eventStore.fullEventStreamFor(eventId);
+		assertEquals(3, eventStream.version());
+		assertEquals(3, eventStream.events().size());
 
-        assertEquals(3, eventStream.version());
-        assertEquals(3, eventStream.events().size());
+		events.clear();
+		events.add(new TestableDomainEvent(4, "Name: " + 4));
 
-        events.clear();
-        events.add(new TestableDomainEvent(4, "Name: " + 4));
+		this.eventStore.appendWith(eventId.withStreamVersion(4), events);
 
-        this.eventStore.appendWith(eventId.withStreamVersion(4), events);
+		eventStream = this.eventStore.fullEventStreamFor(eventId);
 
-        eventStream = this.eventStore.fullEventStreamFor(eventId);
+		assertEquals(4, eventStream.version());
+		assertEquals(4, eventStream.events().size());
 
-        assertEquals(4, eventStream.version());
-        assertEquals(4, eventStream.events().size());
+		for (int idx = 1; idx <= 4; ++idx) {
+			DomainEvent domainEvent = eventStream.events().get(idx - 1);
 
-        for (int idx = 1; idx <= 4; ++idx) {
-            DomainEvent domainEvent = eventStream.events().get(idx - 1);
+			assertEquals(idx, ((TestableDomainEvent) domainEvent).id());
+		}
+	}
 
-            assertEquals(idx, ((TestableDomainEvent) domainEvent).id());
-        }
-    }
+	@Before
+	public void setUp() {
+		this.eventStore = HashMapEventStore.instance();
 
-    @Override
-    protected void setUp() throws Exception {
-        this.eventStore = HashMapEventStore.instance();
+		DomainEventPublisher.instance().reset();
+	}
 
-        DomainEventPublisher.instance().reset();
+	@After
+	public void tearDown() {
+		this.eventStore.purge();
 
-        super.setUp();
-    }
-
-    @Override
-    protected void tearDown() throws Exception {
-        this.eventStore.purge();
-
-        this.eventStore.close();
-
-        super.tearDown();
-    }
+		this.eventStore.close();
+	}
 }
