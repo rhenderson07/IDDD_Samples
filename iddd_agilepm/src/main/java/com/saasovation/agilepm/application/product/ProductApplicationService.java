@@ -16,6 +16,9 @@ package com.saasovation.agilepm.application.product;
 
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.saasovation.agilepm.application.ApplicationServiceLifeCycle;
 import com.saasovation.agilepm.domain.model.discussion.DiscussionAvailability;
 import com.saasovation.agilepm.domain.model.discussion.DiscussionDescriptor;
@@ -30,22 +33,17 @@ import com.saasovation.common.domain.model.process.ProcessId;
 import com.saasovation.common.domain.model.process.TimeConstrainedProcessTracker;
 import com.saasovation.common.domain.model.process.TimeConstrainedProcessTrackerRepository;
 
+@Service
 public class ProductApplicationService {
 
+	@Autowired
 	private TimeConstrainedProcessTrackerRepository processTrackerRepository;
+	
+	@Autowired
 	private ProductOwnerRepository productOwnerRepository;
+	
+	@Autowired
 	private ProductRepository productRepository;
-
-	public ProductApplicationService(ProductRepository aProductRepository,
-			ProductOwnerRepository aProductOwnerRepository,
-			TimeConstrainedProcessTrackerRepository aProcessTrackerRepository) {
-
-		super();
-
-		this.processTrackerRepository = aProcessTrackerRepository;
-		this.productOwnerRepository = aProductOwnerRepository;
-		this.productRepository = aProductRepository;
-	}
 
 	// TODO: additional APIs / student assignment
 

@@ -16,6 +16,8 @@ package com.saasovation.agilepm.application;
 
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.saasovation.agilepm.application.product.ProductApplicationService;
 import com.saasovation.agilepm.domain.model.product.Product;
 import com.saasovation.agilepm.domain.model.product.ProductCommonTest;
@@ -27,57 +29,40 @@ import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBTimeConstr
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
 public abstract class ProductApplicationCommonTest extends ProductCommonTest {
+	@Autowired
+	protected ProductApplicationService productApplicationService;
+	protected TimeConstrainedProcessTrackerRepository timeConstrainedProcessTrackerRepository;
 
-    protected ProductApplicationService productApplicationService;
-    protected TimeConstrainedProcessTrackerRepository timeConstrainedProcessTrackerRepository;
+	protected Product persistedProductForTest() {
+		Product product = this.productForTest();
 
-    public ProductApplicationCommonTest() {
-        super();
-    }
+		LevelDBUnitOfWork.start(this.database);
 
-    protected Product persistedProductForTest() {
-        Product product = this.productForTest();
+		this.productRepository.save(product);
 
-        LevelDBUnitOfWork.start(this.database);
+		LevelDBUnitOfWork.current().commit();
 
-        this.productRepository.save(product);
+		return product;
+	}
 
-        LevelDBUnitOfWork.current().commit();
+	protected ProductOwner persistedProductOwnerForTest() {
+		ProductOwner productOwner = new ProductOwner(new TenantId("T-12345"), "zoe", "Zoe", "Doe",
+				"zoe@saasovation.com", new Date(new Date().getTime() - (86400000L * 30)));
 
-        return product;
-    }
+		LevelDBUnitOfWork.start(this.database);
 
-    protected ProductOwner persistedProductOwnerForTest() {
-        ProductOwner productOwner =
-                new ProductOwner(
-                        new TenantId("T-12345"),
-                        "zoe",
-                        "Zoe",
-                        "Doe",
-                        "zoe@saasovation.com",
-                        new Date(new Date().getTime() - (86400000L * 30)));
+		this.productOwnerRepository.save(productOwner);
 
-        LevelDBUnitOfWork.start(this.database);
+		LevelDBUnitOfWork.current().commit();
 
-        this.productOwnerRepository.save(productOwner);
+		return productOwner;
+	}
 
-        LevelDBUnitOfWork.current().commit();
+	@Override
+	public void setUp() throws Exception {
+		super.setUp();
 
-        return productOwner;
-    }
-
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
-
-        this.timeConstrainedProcessTrackerRepository =
-                new LevelDBTimeConstrainedProcessTrackerRepository(
-                        LevelDBDatabasePath.agilePMPath());
-
-        this.productApplicationService =
-                new ProductApplicationService(
-                        this.productRepository,
-                        this.productOwnerRepository,
-                        this.timeConstrainedProcessTrackerRepository);
-    }
+		this.timeConstrainedProcessTrackerRepository = new LevelDBTimeConstrainedProcessTrackerRepository(
+				LevelDBDatabasePath.agilePMPath());
+	}
 }

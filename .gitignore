@@ -6,3 +6,5 @@ build
 .idea
 .class
 *.core.prefs
+/bin/
+/.settings/

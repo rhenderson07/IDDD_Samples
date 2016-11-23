@@ -39,10 +39,6 @@ public abstract class ProductCommonTest extends DomainTest {
 
     private TaskId taskId;
 
-    public ProductCommonTest() {
-        super();
-    }
-
     protected BacklogItem backlogItemForTest(Product aProduct) {
         return this.backlogItem1ForTest(aProduct);
     }
