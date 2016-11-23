@@ -8,3 +8,5 @@ build
 *.core.prefs
 /bin/
 /.settings/
+
+*.prefs
