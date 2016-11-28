@@ -5,8 +5,7 @@ build
 *.iml
 .idea
 .class
-*.core.prefs
-/bin/
-/.settings/
+.prefs
+bin/
+.settings/
 
-*.prefs
