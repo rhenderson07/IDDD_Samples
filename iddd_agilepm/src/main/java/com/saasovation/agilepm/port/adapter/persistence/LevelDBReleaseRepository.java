@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.stereotype.Repository;
+
 import com.saasovation.agilepm.domain.model.product.ProductId;
 import com.saasovation.agilepm.domain.model.product.release.Release;
 import com.saasovation.agilepm.domain.model.product.release.ReleaseId;
@@ -28,6 +30,7 @@ import com.saasovation.common.port.adapter.persistence.leveldb.AbstractLevelDBRe
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBKey;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
+@Repository
 public class LevelDBReleaseRepository
         extends AbstractLevelDBRepository
         implements ReleaseRepository {

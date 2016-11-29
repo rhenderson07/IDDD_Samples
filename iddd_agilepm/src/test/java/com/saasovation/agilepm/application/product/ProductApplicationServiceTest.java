@@ -14,198 +14,181 @@
 
 package com.saasovation.agilepm.application.product;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.util.Date;
 import java.util.UUID;
 
-import com.saasovation.agilepm.application.ProductApplicationCommonTest;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.support.AnnotationConfigContextLoader;
+
+import com.saasovation.agilepm.AgilePmTestConfig;
 import com.saasovation.agilepm.domain.model.discussion.DiscussionAvailability;
 import com.saasovation.agilepm.domain.model.product.Product;
 import com.saasovation.agilepm.domain.model.product.ProductId;
+import com.saasovation.agilepm.domain.model.product.ProductRepository;
 import com.saasovation.agilepm.domain.model.team.ProductOwner;
+import com.saasovation.agilepm.domain.model.team.ProductOwnerId;
+import com.saasovation.agilepm.domain.model.tenant.TenantId;
 
-public class ProductApplicationServiceTest extends ProductApplicationCommonTest {
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = AgilePmTestConfig.class)
+public class ProductApplicationServiceTest // extends
+											// ProductApplicationCommonTest
+{
+	@Autowired
+	private ProductRepository productRepository;
 
-    public ProductApplicationServiceTest() {
-        super();
-    }
+	@Autowired
+	private ProductApplicationService productApplicationService;
 
-    public void testDiscussionProcess() throws Exception {
-        Product product = this.persistedProductForTest();
+	private Product product;
+	private ProductOwner productOwner;
 
-        this.productApplicationService.requestProductDiscussion(
-                new RequestProductDiscussionCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+	@Before
+	public void setUp() {
+		product = getMockProduct();
+		productOwner = getMockProductOwner();
+	}
 
-        this.productApplicationService.startDiscussionInitiation(
-                new StartDiscussionInitiationCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+	private Product getMockProduct() {
+		TenantId tenantId = new TenantId("T12345");
+		return new Product(tenantId, new ProductId("P12345"), new ProductOwnerId(tenantId, "zdoe"), "My Product",
+				"This is the description of my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product productWithStartedDiscussionInitiation =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+	}
 
-        assertNotNull(productWithStartedDiscussionInitiation.discussionInitiationId());
+	private ProductOwner getMockProductOwner() {
+		return new ProductOwner(new TenantId("T-12345"), "zoe", "Zoe", "Doe", "zoe@saasovation.com",
+				new Date(new Date().getTime() - (86400000L * 30)));
+	}
 
-        String discussionId = UUID.randomUUID().toString().toUpperCase();
+	@Test
+	public void testDiscussionProcess() {
+		this.productApplicationService.requestProductDiscussion(
+				new RequestProductDiscussionCommand(product.tenantId().id(), product.productId().id()));
 
-        InitiateDiscussionCommand command =
-                new InitiateDiscussionCommand(
-                        product.tenantId().id(),
-                        product.productId().id(),
-                        discussionId);
+		this.productApplicationService.startDiscussionInitiation(
+				new StartDiscussionInitiationCommand(product.tenantId().id(), product.productId().id()));
 
-        this.productApplicationService.initiateDiscussion(command);
+		Product productWithStartedDiscussionInitiation = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        Product productWithInitiatedDiscussion =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		assertNotNull(productWithStartedDiscussionInitiation.discussionInitiationId());
 
-        assertEquals(discussionId, productWithInitiatedDiscussion.discussion().descriptor().id());
-    }
+		String discussionId = UUID.randomUUID().toString().toUpperCase();
 
-    public void testNewProduct() throws Exception {
-        ProductOwner productOwner = this.persistedProductOwnerForTest();
+		InitiateDiscussionCommand command = new InitiateDiscussionCommand(product.tenantId().id(),
+				product.productId().id(), discussionId);
 
-        String newProductId =
-            this.productApplicationService.newProduct(
-                    new NewProductCommand(
-                            "T-12345",
-                            productOwner.productOwnerId().id(),
-                            "My Product",
-                            "The description of My Product."));
+		this.productApplicationService.initiateDiscussion(command);
 
-        Product newProduct =
-                this.productRepository
-                    .productOfId(
-                            productOwner.tenantId(),
-                            new ProductId(newProductId));
+		Product productWithInitiatedDiscussion = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        assertNotNull(newProduct);
-        assertEquals("My Product", newProduct.name());
-        assertEquals("The description of My Product.", newProduct.description());
-    }
+		assertEquals(discussionId, productWithInitiatedDiscussion.discussion().descriptor().id());
+	}
 
-    public void testNewProductWithDiscussion() throws Exception {
-        ProductOwner productOwner = this.persistedProductOwnerForTest();
+	@Test
+	public void testNewProduct() {
+		String productOwnerIdStr = productOwner.productOwnerId().id();
+		NewProductCommand newProductCommand = new NewProductCommand("T-12345", productOwnerIdStr, "My Product",
+				"The description of My Product.");
 
-        String newProductId =
-            this.productApplicationService.newProductWithDiscussion(
-                    new NewProductCommand(
-                            "T-12345",
-                            productOwner.productOwnerId().id(),
-                            "My Product",
-                            "The description of My Product."));
+		String newProductIdStr = this.productApplicationService.newProduct(newProductCommand);
 
-        Product newProduct =
-                this.productRepository
-                    .productOfId(
-                            productOwner.tenantId(),
-                            new ProductId(newProductId));
+		ProductId newProductId = new ProductId(newProductIdStr);
+		Product newProduct = this.productRepository.productOfId(productOwner.tenantId(), newProductId);
 
-        assertNotNull(newProduct);
-        assertEquals("My Product", newProduct.name());
-        assertEquals("The description of My Product.", newProduct.description());
-        assertEquals(DiscussionAvailability.REQUESTED, newProduct.discussion().availability());
-    }
+		assertNotNull(newProduct);
+		assertEquals("My Product", newProduct.name());
+		assertEquals("The description of My Product.", newProduct.description());
+	}
 
-    public void testRequestProductDiscussion() throws Exception {
-        Product product = this.persistedProductForTest();
+	@Test
+	public void testNewProductWithDiscussion() {
+		String productOwnerIdStr = productOwner.productOwnerId().id();
+		NewProductCommand newProductCommand = new NewProductCommand("T-12345", productOwnerIdStr, "My Product",
+				"The description of My Product.");
+		String newProductId = this.productApplicationService.newProductWithDiscussion(newProductCommand);
 
-        this.productApplicationService.requestProductDiscussion(
-                new RequestProductDiscussionCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+		Product newProduct = this.productRepository.productOfId(productOwner.tenantId(), new ProductId(newProductId));
 
-        Product productWithRequestedDiscussion =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		assertNotNull(newProduct);
+		assertEquals("My Product", newProduct.name());
+		assertEquals("The description of My Product.", newProduct.description());
+		assertEquals(DiscussionAvailability.REQUESTED, newProduct.discussion().availability());
+	}
 
-        assertEquals(DiscussionAvailability.REQUESTED, productWithRequestedDiscussion.discussion().availability());
-    }
+	@Test
+	public void testRequestProductDiscussion() {
+		this.productApplicationService.requestProductDiscussion(
+				new RequestProductDiscussionCommand(product.tenantId().id(), product.productId().id()));
 
-    public void testRetryProductDiscussionRequest() throws Exception {
-        Product product = this.persistedProductForTest();
+		Product productWithRequestedDiscussion = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        this.productApplicationService.requestProductDiscussion(
-                new RequestProductDiscussionCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+		assertEquals(DiscussionAvailability.REQUESTED, productWithRequestedDiscussion.discussion().availability());
+	}
 
-        Product productWithRequestedDiscussion =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+	@Test
+	public void testRetryProductDiscussionRequest() {
+		this.productApplicationService.requestProductDiscussion(
+				new RequestProductDiscussionCommand(product.tenantId().id(), product.productId().id()));
 
-        assertEquals(DiscussionAvailability.REQUESTED, productWithRequestedDiscussion.discussion().availability());
+		Product productWithRequestedDiscussion = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        this.productApplicationService.startDiscussionInitiation(
-                new StartDiscussionInitiationCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+		assertEquals(DiscussionAvailability.REQUESTED, productWithRequestedDiscussion.discussion().availability());
 
-        Product productWithDiscussionInitiation =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		this.productApplicationService.startDiscussionInitiation(
+				new StartDiscussionInitiationCommand(product.tenantId().id(), product.productId().id()));
 
-        assertNotNull(productWithDiscussionInitiation.discussionInitiationId());
+		Product productWithDiscussionInitiation = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        this.productApplicationService.retryProductDiscussionRequest(
-                new RetryProductDiscussionRequestCommand(
-                        product.tenantId().id(),
-                        productWithDiscussionInitiation.discussionInitiationId()));
+		assertNotNull(productWithDiscussionInitiation.discussionInitiationId());
 
-        Product productWithRetriedRequestedDiscussion =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		this.productApplicationService.retryProductDiscussionRequest(new RetryProductDiscussionRequestCommand(
+				product.tenantId().id(), productWithDiscussionInitiation.discussionInitiationId()));
 
-        assertEquals(DiscussionAvailability.REQUESTED, productWithRetriedRequestedDiscussion.discussion().availability());
-    }
+		Product productWithRetriedRequestedDiscussion = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-    public void testStartDiscussionInitiation() throws Exception {
-        Product product = this.persistedProductForTest();
+		assertEquals(DiscussionAvailability.REQUESTED,
+				productWithRetriedRequestedDiscussion.discussion().availability());
+	}
 
-        this.productApplicationService.requestProductDiscussion(
-                new RequestProductDiscussionCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+	@Test
+	public void testStartDiscussionInitiation() {
+		this.productApplicationService.requestProductDiscussion(
+				new RequestProductDiscussionCommand(product.tenantId().id(), product.productId().id()));
 
-        Product productWithRequestedDiscussion =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		Product productWithRequestedDiscussion = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        assertEquals(DiscussionAvailability.REQUESTED, productWithRequestedDiscussion.discussion().availability());
+		assertEquals(DiscussionAvailability.REQUESTED, productWithRequestedDiscussion.discussion().availability());
 
-        assertNull(productWithRequestedDiscussion.discussionInitiationId());
+		assertNull(productWithRequestedDiscussion.discussionInitiationId());
 
-        this.productApplicationService.startDiscussionInitiation(
-                new StartDiscussionInitiationCommand(
-                        product.tenantId().id(),
-                        product.productId().id()));
+		this.productApplicationService.startDiscussionInitiation(
+				new StartDiscussionInitiationCommand(product.tenantId().id(), product.productId().id()));
 
-        Product productWithDiscussionInitiation =
-                this.productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		Product productWithDiscussionInitiation = this.productRepository.productOfId(product.tenantId(),
+				product.productId());
 
-        assertNotNull(productWithDiscussionInitiation.discussionInitiationId());
-    }
+		assertNotNull(productWithDiscussionInitiation.discussionInitiationId());
+	}
 
-    public void testTimeOutProductDiscussionRequest() throws Exception {
-        // TODO: student assignment
-    }
+	@Test
+	public void testTimeOutProductDiscussionRequest() {
+		// TODO: student assignment
+	}
 }

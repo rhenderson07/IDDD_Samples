@@ -20,12 +20,14 @@ import java.util.Date;
 
 import org.hibernate.Query;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.stereotype.Repository;
 
 import com.saasovation.common.domain.model.process.ProcessId;
 import com.saasovation.common.domain.model.process.TimeConstrainedProcessTracker;
 import com.saasovation.common.domain.model.process.TimeConstrainedProcessTrackerRepository;
 import com.saasovation.common.persistence.PersistenceManagerProvider;
 
+@Repository
 public class HibernateTimeConstrainedProcessTrackerRepository
     extends AbstractHibernateSession
     implements TimeConstrainedProcessTrackerRepository {

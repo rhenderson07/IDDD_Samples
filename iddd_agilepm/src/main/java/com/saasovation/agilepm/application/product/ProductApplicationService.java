@@ -31,13 +31,13 @@ import com.saasovation.agilepm.domain.model.team.ProductOwnerRepository;
 import com.saasovation.agilepm.domain.model.tenant.TenantId;
 import com.saasovation.common.domain.model.process.ProcessId;
 import com.saasovation.common.domain.model.process.TimeConstrainedProcessTracker;
-import com.saasovation.common.domain.model.process.TimeConstrainedProcessTrackerRepository;
+//import com.saasovation.common.domain.model.process.TimeConstrainedProcessTrackerRepository;
 
 @Service
 public class ProductApplicationService {
 
-	@Autowired
-	private TimeConstrainedProcessTrackerRepository processTrackerRepository;
+	//@Autowired
+	//private TimeConstrainedProcessTrackerRepository processTrackerRepository;
 	
 	@Autowired
 	private ProductOwnerRepository productOwnerRepository;
@@ -63,14 +63,14 @@ public class ProductApplicationService {
 
 			this.productRepository().save(product);
 
-			ProcessId processId = ProcessId.existingProcessId(product.discussionInitiationId());
+//			ProcessId processId = ProcessId.existingProcessId(product.discussionInitiationId());
 
-			TimeConstrainedProcessTracker tracker = this.processTrackerRepository()
-					.trackerOfProcessId(aCommand.getTenantId(), processId);
+//			TimeConstrainedProcessTracker tracker = this.processTrackerRepository()
+//					.trackerOfProcessId(aCommand.getTenantId(), processId);
 
-			tracker.completed();
+//			tracker.completed();
 
-			this.processTrackerRepository().save(tracker);
+//			this.processTrackerRepository().save(tracker);
 
 			ApplicationServiceLifeCycle.success();
 
@@ -140,7 +140,7 @@ public class ProductApplicationService {
 					3, // 3 total retries
 					timedOutEventName);
 
-			this.processTrackerRepository().save(tracker);
+			//this.processTrackerRepository().save(tracker);
 
 			product.startDiscussionInitiation(tracker.processId().id());
 
@@ -222,9 +222,9 @@ public class ProductApplicationService {
 		return availability;
 	}
 
-	private TimeConstrainedProcessTrackerRepository processTrackerRepository() {
-		return this.processTrackerRepository;
-	}
+//	private TimeConstrainedProcessTrackerRepository processTrackerRepository() {
+//		return this.processTrackerRepository;
+//	}
 
 	private ProductOwnerRepository productOwnerRepository() {
 		return this.productOwnerRepository;

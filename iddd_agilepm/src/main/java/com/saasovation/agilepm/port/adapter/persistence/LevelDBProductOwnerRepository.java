@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.stereotype.Repository;
+
 import com.saasovation.agilepm.domain.model.team.ProductOwner;
 import com.saasovation.agilepm.domain.model.team.ProductOwnerRepository;
 import com.saasovation.agilepm.domain.model.tenant.TenantId;
@@ -25,6 +27,7 @@ import com.saasovation.common.port.adapter.persistence.leveldb.AbstractLevelDBRe
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBKey;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
+@Repository
 public class LevelDBProductOwnerRepository
         extends AbstractLevelDBRepository
         implements ProductOwnerRepository {
