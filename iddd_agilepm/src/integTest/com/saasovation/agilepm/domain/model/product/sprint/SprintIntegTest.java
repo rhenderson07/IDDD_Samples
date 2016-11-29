@@ -23,9 +23,9 @@ import com.saasovation.agilepm.domain.model.product.ProductCreated;
 import com.saasovation.agilepm.domain.model.product.ProductSprintScheduled;
 import com.saasovation.agilepm.domain.model.product.backlogitem.BacklogItem;
 
-public class SprintTest extends ProductCommonTest {
+public class SprintIntegTest extends ProductCommonTest {
 
-    public SprintTest() {
+    public SprintIntegTest() {
         super();
     }
 

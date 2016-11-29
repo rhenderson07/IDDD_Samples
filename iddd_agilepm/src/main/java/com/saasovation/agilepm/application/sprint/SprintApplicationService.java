@@ -14,7 +14,6 @@ public class SprintApplicationService {
 	private SprintRepository sprintRepository;
 
 	public SprintApplicationService(SprintRepository aSprintRepository, BacklogItemRepository aBacklogItemRepository) {
-
 		this.backlogItemRepository = aBacklogItemRepository;
 		this.sprintRepository = aSprintRepository;
 	}

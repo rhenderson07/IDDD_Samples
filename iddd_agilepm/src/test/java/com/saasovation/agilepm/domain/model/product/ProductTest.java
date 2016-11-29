@@ -90,7 +90,7 @@ public class ProductTest {
 	}
 
 	@Test
-	public void testPlannedBacklogItem() {
+	public void plannedBacklogItem() {
 		for (ProductBacklogItem productBacklogItem : productWithBacklogItems.allBacklogItems()) {
 			if (productBacklogItem.ordering() == 1) {
 				assertTrue(productBacklogItem.backlogItemId().id().endsWith("-1"));
