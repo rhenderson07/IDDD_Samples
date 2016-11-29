@@ -14,224 +14,169 @@
 
 package com.saasovation.agilepm.port.adapter.persistence;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import junit.framework.TestCase;
-
-import org.iq80.leveldb.DB;
+import org.junit.Test;
 
 import com.saasovation.agilepm.domain.model.team.TeamMember;
 import com.saasovation.agilepm.domain.model.team.TeamMemberRepository;
 import com.saasovation.agilepm.domain.model.tenant.TenantId;
-import com.saasovation.common.domain.model.DomainEventPublisher;
-import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBProvider;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
-public class LevelDBTeamMemberRepositoryTest extends TestCase {
+public class LevelDBTeamMemberRepositoryTest extends BaseLevelDBRepositoryTest {
 
-    private DB database;
-    private TeamMemberRepository teamMemberRepository = new LevelDBTeamMemberRepository();
+	private TeamMemberRepository teamMemberRepository = new LevelDBTeamMemberRepository();
 
-    public LevelDBTeamMemberRepositoryTest() {
-        super();
-    }
+	@Test
+	public void testSave() {
+		TeamMember teamMember = new TeamMember(new TenantId("12345"), "jdoe", "John", "Doe", "jdoe@saasovation.com",
+				new Date());
 
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.save(teamMember);
+		LevelDBUnitOfWork.current().commit();
 
-    public void testSave() throws Exception {
-        TeamMember teamMember =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "jdoe",
-                        "John",
-                        "Doe",
-                        "jdoe@saasovation.com",
-                        new Date());
+		TeamMember savedTeamMember = teamMemberRepository.teamMemberOfIdentity(teamMember.tenantId(),
+				teamMember.username());
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.save(teamMember);
-        LevelDBUnitOfWork.current().commit();
+		assertNotNull(savedTeamMember);
+		assertEquals(teamMember.tenantId(), savedTeamMember.tenantId());
+		assertEquals(teamMember.username(), savedTeamMember.username());
+		assertEquals(teamMember.firstName(), savedTeamMember.firstName());
+		assertEquals(teamMember.lastName(), savedTeamMember.lastName());
+		assertEquals(teamMember.emailAddress(), savedTeamMember.emailAddress());
 
-        TeamMember savedTeamMember =
-                teamMemberRepository.teamMemberOfIdentity(
-                        teamMember.tenantId(),
-                        teamMember.username());
+		Collection<TeamMember> savedTeamMembers = this.teamMemberRepository
+				.allTeamMembersOfTenant(teamMember.tenantId());
 
-        assertNotNull(savedTeamMember);
-        assertEquals(teamMember.tenantId(), savedTeamMember.tenantId());
-        assertEquals(teamMember.username(), savedTeamMember.username());
-        assertEquals(teamMember.firstName(), savedTeamMember.firstName());
-        assertEquals(teamMember.lastName(), savedTeamMember.lastName());
-        assertEquals(teamMember.emailAddress(), savedTeamMember.emailAddress());
+		assertFalse(savedTeamMembers.isEmpty());
+		assertEquals(1, savedTeamMembers.size());
+	}
 
-        Collection<TeamMember> savedTeamMembers =
-                this.teamMemberRepository.allTeamMembersOfTenant(teamMember.tenantId());
+	@Test
+	public void testRemove() {
+		TeamMember teamMember1 = new TeamMember(new TenantId("12345"), "jdoe", "John", "Doe", "jdoe@saasovation.com",
+				new Date());
 
-        assertFalse(savedTeamMembers.isEmpty());
-        assertEquals(1, savedTeamMembers.size());
-    }
+		TeamMember teamMember2 = new TeamMember(new TenantId("12345"), "zdoe", "Zoe", "Doe", "zoe@saasovation.com",
+				new Date());
 
-    public void testRemove() {
-        TeamMember teamMember1 =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "jdoe",
-                        "John",
-                        "Doe",
-                        "jdoe@saasovation.com",
-                        new Date());
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.save(teamMember1);
+		teamMemberRepository.save(teamMember2);
+		LevelDBUnitOfWork.current().commit();
 
-        TeamMember teamMember2 =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "zdoe",
-                        "Zoe",
-                        "Doe",
-                        "zoe@saasovation.com",
-                        new Date());
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.remove(teamMember1);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.save(teamMember1);
-        teamMemberRepository.save(teamMember2);
-        LevelDBUnitOfWork.current().commit();
+		TenantId tenantId = teamMember2.tenantId();
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.remove(teamMember1);
-        LevelDBUnitOfWork.current().commit();
+		Collection<TeamMember> savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
+		assertFalse(savedTeamMembers.isEmpty());
+		assertEquals(1, savedTeamMembers.size());
+		assertEquals(teamMember2.username(), savedTeamMembers.iterator().next().username());
 
-        TenantId tenantId = teamMember2.tenantId();
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.remove(teamMember2);
+		LevelDBUnitOfWork.current().commit();
 
-        Collection<TeamMember> savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
-        assertFalse(savedTeamMembers.isEmpty());
-        assertEquals(1, savedTeamMembers.size());
-        assertEquals(teamMember2.username(), savedTeamMembers.iterator().next().username());
+		savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
+		assertTrue(savedTeamMembers.isEmpty());
+	}
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.remove(teamMember2);
-        LevelDBUnitOfWork.current().commit();
+	@Test
+	public void testSaveAllRemoveAll() {
+		TeamMember teamMember1 = new TeamMember(new TenantId("12345"), "jdoe", "John", "Doe", "jdoe@saasovation.com",
+				new Date());
 
-        savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
-        assertTrue(savedTeamMembers.isEmpty());
-    }
+		TeamMember teamMember2 = new TeamMember(new TenantId("12345"), "zdoe", "Zoe", "Doe", "zoe@saasovation.com",
+				new Date());
 
-    public void testSaveAllRemoveAll() throws Exception {
-        TeamMember teamMember1 =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "jdoe",
-                        "John",
-                        "Doe",
-                        "jdoe@saasovation.com",
-                        new Date());
+		TeamMember teamMember3 = new TeamMember(new TenantId("12345"), "jsmith", "John", "Smith",
+				"jsmith@saasovation.com", new Date());
 
-        TeamMember teamMember2 =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "zdoe",
-                        "Zoe",
-                        "Doe",
-                        "zoe@saasovation.com",
-                        new Date());
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.saveAll(Arrays.asList(new TeamMember[] { teamMember1, teamMember2, teamMember3 }));
+		LevelDBUnitOfWork.current().commit();
 
-        TeamMember teamMember3 =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "jsmith",
-                        "John",
-                        "Smith",
-                        "jsmith@saasovation.com",
-                        new Date());
+		TenantId tenantId = teamMember1.tenantId();
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.saveAll(Arrays.asList(new TeamMember[] { teamMember1, teamMember2, teamMember3 }));
-        LevelDBUnitOfWork.current().commit();
+		Collection<TeamMember> savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
+		assertFalse(savedTeamMembers.isEmpty());
+		assertEquals(3, savedTeamMembers.size());
 
-        TenantId tenantId = teamMember1.tenantId();
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.removeAll(Arrays.asList(new TeamMember[] { teamMember1, teamMember3 }));
+		LevelDBUnitOfWork.current().commit();
 
-        Collection<TeamMember> savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
-        assertFalse(savedTeamMembers.isEmpty());
-        assertEquals(3, savedTeamMembers.size());
+		savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
+		assertFalse(savedTeamMembers.isEmpty());
+		assertEquals(1, savedTeamMembers.size());
+		assertEquals(teamMember2.username(), savedTeamMembers.iterator().next().username());
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.removeAll(Arrays.asList(new TeamMember[] { teamMember1, teamMember3 }));
-        LevelDBUnitOfWork.current().commit();
+		LevelDBUnitOfWork.start(super.getDB());
+		teamMemberRepository.removeAll(Arrays.asList(new TeamMember[] { teamMember2 }));
+		LevelDBUnitOfWork.current().commit();
 
-        savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
-        assertFalse(savedTeamMembers.isEmpty());
-        assertEquals(1, savedTeamMembers.size());
-        assertEquals(teamMember2.username(), savedTeamMembers.iterator().next().username());
+		savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
+		assertTrue(savedTeamMembers.isEmpty());
+	}
 
-        LevelDBUnitOfWork.start(this.database);
-        teamMemberRepository.removeAll(Arrays.asList(new TeamMember[] { teamMember2 }));
-        LevelDBUnitOfWork.current().commit();
+	@Test
+	public void testConcurrentTransactions() {
+		final List<Integer> orderOfCommits = new ArrayList<Integer>();
 
-        savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(tenantId);
-        assertTrue(savedTeamMembers.isEmpty());
-    }
+		TeamMember teamMember1 = new TeamMember(new TenantId("12345"), "jdoe", "John", "Doe", "jdoe@saasovation.com",
+				new Date());
 
-    public void testConcurrentTransactions() throws Exception {
-        final List<Integer> orderOfCommits = new ArrayList<Integer>();
+		LevelDBUnitOfWork.start(getDB());
+		teamMemberRepository.save(teamMember1);
 
-        TeamMember teamMember1 =
-                new TeamMember(
-                        new TenantId("12345"),
-                        "jdoe",
-                        "John",
-                        "Doe",
-                        "jdoe@saasovation.com",
-                        new Date());
+		new Thread() {
+			@Override
+			public void run() {
+				TeamMember teamMember2 = new TeamMember(new TenantId("12345"), "zdoe", "Zoe", "Doe",
+						"zoe@saasovation.com", new Date());
 
-        LevelDBUnitOfWork.start(database);
-        teamMemberRepository.save(teamMember1);
+				LevelDBUnitOfWork.start(getDB());
+				teamMemberRepository.save(teamMember2);
+				LevelDBUnitOfWork.current().commit();
+				orderOfCommits.add(2);
+			}
+		}.start();
 
-        new Thread() {
-           @Override
-           public void run() {
-               TeamMember teamMember2 =
-                       new TeamMember(
-                               new TenantId("12345"),
-                               "zdoe",
-                               "Zoe",
-                               "Doe",
-                               "zoe@saasovation.com",
-                               new Date());
+		try {
+			Thread.sleep(250L);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
-               LevelDBUnitOfWork.start(database);
-               teamMemberRepository.save(teamMember2);
-               LevelDBUnitOfWork.current().commit();
-               orderOfCommits.add(2);
-           }
-        }.start();
+		LevelDBUnitOfWork.current().commit();
+		orderOfCommits.add(1);
 
-        Thread.sleep(250L);
+		for (int idx = 0; idx < orderOfCommits.size(); ++idx) {
+			assertEquals(idx + 1, orderOfCommits.get(idx).intValue());
+		}
 
-        LevelDBUnitOfWork.current().commit();
-        orderOfCommits.add(1);
+		try {
+			Thread.sleep(250L);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
-        for (int idx = 0; idx < orderOfCommits.size(); ++idx) {
-            assertEquals(idx + 1, orderOfCommits.get(idx).intValue());
-        }
+		Collection<TeamMember> savedTeamMembers = teamMemberRepository.allTeamMembersOfTenant(teamMember1.tenantId());
 
-        Thread.sleep(250L);
-
-        Collection<TeamMember> savedTeamMembers =
-                teamMemberRepository.allTeamMembersOfTenant(teamMember1.tenantId());
-
-        assertFalse(savedTeamMembers.isEmpty());
-        assertEquals(2, savedTeamMembers.size());
-    }
-
-    @Override
-    protected void setUp() throws Exception {
-        DomainEventPublisher.instance().reset();
-
-        this.database = LevelDBProvider.instance().databaseFrom(LevelDBDatabasePath.agilePMPath());
-
-        LevelDBProvider.instance().purge(this.database);
-
-        super.setUp();
-    }
+		assertFalse(savedTeamMembers.isEmpty());
+		assertEquals(2, savedTeamMembers.size());
+	}
 }

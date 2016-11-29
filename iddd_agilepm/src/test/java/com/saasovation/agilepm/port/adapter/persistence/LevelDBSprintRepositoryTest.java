@@ -14,180 +14,172 @@
 
 package com.saasovation.agilepm.port.adapter.persistence;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import junit.framework.TestCase;
-
-import org.iq80.leveldb.DB;
+import org.junit.Test;
 
 import com.saasovation.agilepm.domain.model.product.ProductId;
 import com.saasovation.agilepm.domain.model.product.sprint.Sprint;
 import com.saasovation.agilepm.domain.model.product.sprint.SprintId;
 import com.saasovation.agilepm.domain.model.product.sprint.SprintRepository;
 import com.saasovation.agilepm.domain.model.tenant.TenantId;
-import com.saasovation.common.domain.model.DomainEventPublisher;
-import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBProvider;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
-public class LevelDBSprintRepositoryTest extends TestCase {
+public class LevelDBSprintRepositoryTest extends BaseLevelDBRepositoryTest {
 
-    private DB database;
-    private SprintRepository sprintRepository = new LevelDBSprintRepository();
+	private SprintRepository sprintRepository = new LevelDBSprintRepository();
 
-    public LevelDBSprintRepositoryTest() {
-        super();
-    }
+	@Test
+	public void testSave() {
+		Sprint sprint = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"), "sprint1",
+				"My sprint 1.", new Date(), new Date());
 
-    public void testSave() throws Exception {
-        Sprint sprint = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"),
-                "sprint1", "My sprint 1.", new Date(), new Date());
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.save(sprint);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.save(sprint);
-        LevelDBUnitOfWork.current().commit();
+		Sprint savedSprint = sprintRepository.sprintOfId(sprint.tenantId(), sprint.sprintId());
 
-        Sprint savedSprint = sprintRepository.sprintOfId(sprint.tenantId(), sprint.sprintId());
+		assertNotNull(savedSprint);
+		assertEquals(sprint.tenantId(), savedSprint.tenantId());
+		assertEquals(sprint.name(), savedSprint.name());
 
-        assertNotNull(savedSprint);
-        assertEquals(sprint.tenantId(), savedSprint.tenantId());
-        assertEquals(sprint.name(), savedSprint.name());
+		Collection<Sprint> savedSprints = this.sprintRepository.allProductSprints(sprint.tenantId(),
+				sprint.productId());
 
-        Collection<Sprint> savedSprints =
-                this.sprintRepository.allProductSprints(sprint.tenantId(), sprint.productId());
+		assertFalse(savedSprints.isEmpty());
+		assertEquals(1, savedSprints.size());
+	}
 
-        assertFalse(savedSprints.isEmpty());
-        assertEquals(1, savedSprints.size());
-    }
+	@Test
+	public void testRemove() {
+		Sprint sprint1 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"), "sprint1",
+				"My sprint 1.", new Date(), new Date());
 
-    public void testRemove() {
-        Sprint sprint1 = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"),
-                "sprint1", "My sprint 1.", new Date(), new Date());
+		Sprint sprint2 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11112"), "sprint2",
+				"My sprint 2.", new Date(), new Date());
 
-        Sprint sprint2 = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11112"),
-                "sprint2", "My sprint 2.", new Date(), new Date());
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.save(sprint1);
+		sprintRepository.save(sprint2);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.save(sprint1);
-        sprintRepository.save(sprint2);
-        LevelDBUnitOfWork.current().commit();
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.remove(sprint1);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.remove(sprint1);
-        LevelDBUnitOfWork.current().commit();
+		TenantId tenantId = sprint2.tenantId();
+		ProductId productId = sprint2.productId();
 
-        TenantId tenantId = sprint2.tenantId();
-        ProductId productId = sprint2.productId();
+		Collection<Sprint> savedSprints = sprintRepository.allProductSprints(tenantId, productId);
+		assertFalse(savedSprints.isEmpty());
+		assertEquals(1, savedSprints.size());
+		assertEquals(sprint2.name(), savedSprints.iterator().next().name());
 
-        Collection<Sprint> savedSprints = sprintRepository.allProductSprints(tenantId, productId);
-        assertFalse(savedSprints.isEmpty());
-        assertEquals(1, savedSprints.size());
-        assertEquals(sprint2.name(), savedSprints.iterator().next().name());
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.remove(sprint2);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.remove(sprint2);
-        LevelDBUnitOfWork.current().commit();
+		savedSprints = sprintRepository.allProductSprints(tenantId, productId);
+		assertTrue(savedSprints.isEmpty());
+	}
 
-        savedSprints = sprintRepository.allProductSprints(tenantId, productId);
-        assertTrue(savedSprints.isEmpty());
-    }
+	@Test
+	public void testSaveAllRemoveAll() {
+		Sprint sprint1 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"), "sprint1",
+				"My sprint 1.", new Date(), new Date());
 
-    public void testSaveAllRemoveAll() throws Exception {
-        Sprint sprint1 = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"),
-                "sprint1", "My sprint 1.", new Date(), new Date());
+		Sprint sprint2 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11112"), "sprint2",
+				"My sprint 2.", new Date(), new Date());
 
-        Sprint sprint2 = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11112"),
-                "sprint2", "My sprint 2.", new Date(), new Date());
+		Sprint sprint3 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11113"), "sprint3",
+				"My sprint 3.", new Date(), new Date());
 
-        Sprint sprint3 = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11113"),
-                "sprint3", "My sprint 3.", new Date(), new Date());
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.saveAll(Arrays.asList(new Sprint[] { sprint1, sprint2, sprint3 }));
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.saveAll(Arrays.asList(new Sprint[] { sprint1, sprint2, sprint3 }));
-        LevelDBUnitOfWork.current().commit();
+		TenantId tenantId = sprint1.tenantId();
+		ProductId productId = sprint1.productId();
 
-        TenantId tenantId = sprint1.tenantId();
-        ProductId productId = sprint1.productId();
+		Collection<Sprint> savedSprints = sprintRepository.allProductSprints(tenantId, productId);
+		assertFalse(savedSprints.isEmpty());
+		assertEquals(3, savedSprints.size());
 
-        Collection<Sprint> savedSprints = sprintRepository.allProductSprints(tenantId, productId);
-        assertFalse(savedSprints.isEmpty());
-        assertEquals(3, savedSprints.size());
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.removeAll(Arrays.asList(new Sprint[] { sprint1, sprint3 }));
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.removeAll(Arrays.asList(new Sprint[] { sprint1, sprint3 }));
-        LevelDBUnitOfWork.current().commit();
+		savedSprints = sprintRepository.allProductSprints(tenantId, productId);
+		assertFalse(savedSprints.isEmpty());
+		assertEquals(1, savedSprints.size());
+		assertEquals(sprint2.name(), savedSprints.iterator().next().name());
 
-        savedSprints = sprintRepository.allProductSprints(tenantId, productId);
-        assertFalse(savedSprints.isEmpty());
-        assertEquals(1, savedSprints.size());
-        assertEquals(sprint2.name(), savedSprints.iterator().next().name());
+		LevelDBUnitOfWork.start(super.getDB());
+		sprintRepository.removeAll(Arrays.asList(new Sprint[] { sprint2 }));
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        sprintRepository.removeAll(Arrays.asList(new Sprint[] { sprint2 }));
-        LevelDBUnitOfWork.current().commit();
+		savedSprints = sprintRepository.allProductSprints(tenantId, productId);
+		assertTrue(savedSprints.isEmpty());
+	}
 
-        savedSprints = sprintRepository.allProductSprints(tenantId, productId);
-        assertTrue(savedSprints.isEmpty());
-    }
+	@Test
+	public void testConcurrentTransactions() {
+		final List<Integer> orderOfCommits = new ArrayList<Integer>();
 
-    public void testConcurrentTransactions() throws Exception {
-        final List<Integer> orderOfCommits = new ArrayList<Integer>();
+		Sprint sprint1 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"), "sprint1",
+				"My sprint 1.", new Date(), new Date());
 
-        Sprint sprint1 = new Sprint(
-                new TenantId("12345"), new ProductId("p00000"), new SprintId("s11111"),
-                "sprint1", "My sprint 1.", new Date(), new Date());
+		LevelDBUnitOfWork.start(getDB());
+		sprintRepository.save(sprint1);
 
-        LevelDBUnitOfWork.start(database);
-        sprintRepository.save(sprint1);
+		new Thread() {
+			@Override
+			public void run() {
+				Sprint sprint2 = new Sprint(new TenantId("12345"), new ProductId("p00000"), new SprintId("s11112"),
+						"sprint2", "My sprint 2.", new Date(), new Date());
 
-        new Thread() {
-           @Override
-           public void run() {
-               Sprint sprint2 = new Sprint(
-                       new TenantId("12345"), new ProductId("p00000"), new SprintId("s11112"),
-                       "sprint2", "My sprint 2.", new Date(), new Date());
+				LevelDBUnitOfWork.start(getDB());
+				sprintRepository.save(sprint2);
+				LevelDBUnitOfWork.current().commit();
+				orderOfCommits.add(2);
+			}
+		}.start();
 
-               LevelDBUnitOfWork.start(database);
-               sprintRepository.save(sprint2);
-               LevelDBUnitOfWork.current().commit();
-               orderOfCommits.add(2);
-           }
-        }.start();
+		try {
+			Thread.sleep(250L);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
-        Thread.sleep(250L);
+		LevelDBUnitOfWork.current().commit();
+		orderOfCommits.add(1);
 
-        LevelDBUnitOfWork.current().commit();
-        orderOfCommits.add(1);
+		for (int idx = 0; idx < orderOfCommits.size(); ++idx) {
+			assertEquals(idx + 1, orderOfCommits.get(idx).intValue());
+		}
 
-        for (int idx = 0; idx < orderOfCommits.size(); ++idx) {
-            assertEquals(idx + 1, orderOfCommits.get(idx).intValue());
-        }
+		try {
+			Thread.sleep(250L);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
-        Thread.sleep(250L);
+		Collection<Sprint> savedSprints = sprintRepository.allProductSprints(sprint1.tenantId(), sprint1.productId());
 
-        Collection<Sprint> savedSprints = sprintRepository.allProductSprints(sprint1.tenantId(), sprint1.productId());
+		assertFalse(savedSprints.isEmpty());
+		assertEquals(2, savedSprints.size());
+	}
 
-        assertFalse(savedSprints.isEmpty());
-        assertEquals(2, savedSprints.size());
-    }
-
-    @Override
-    protected void setUp() throws Exception {
-        DomainEventPublisher.instance().reset();
-
-        this.database = LevelDBProvider.instance().databaseFrom(LevelDBDatabasePath.agilePMPath());
-
-        LevelDBProvider.instance().purge(this.database);
-
-        super.setUp();
-    }
 }

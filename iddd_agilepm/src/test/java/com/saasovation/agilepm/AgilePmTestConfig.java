@@ -2,6 +2,7 @@ package com.saasovation.agilepm;
 
 import javax.sql.DataSource;
 
+import org.iq80.leveldb.DB;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,9 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+
+import com.saasovation.agilepm.port.adapter.persistence.LevelDBDatabasePath;
+import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBProvider;
 
 @Configuration
 @ComponentScan("com.saasovation.agilepm")
@@ -47,6 +51,17 @@ public class AgilePmTestConfig {
 	@Bean
 	public JdbcTemplate jdbcTemplate(DataSource dataSource) {
 		return new JdbcTemplate(dataSource);
+	}
+
+	@Bean
+	public LevelDBProvider levelDatabaseProvider(){
+		return LevelDBProvider.instance();
+	}
+	
+	@Bean
+	public DB levelDatabase(LevelDBProvider dbProvider){
+		DB database = dbProvider.databaseFrom(LevelDBDatabasePath.agilePMPath());
+		return database;
 	}
 
 	@Bean

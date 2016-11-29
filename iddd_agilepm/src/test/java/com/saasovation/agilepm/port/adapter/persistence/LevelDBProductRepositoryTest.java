@@ -14,14 +14,17 @@
 
 package com.saasovation.agilepm.port.adapter.persistence;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import junit.framework.TestCase;
-
-import org.iq80.leveldb.DB;
+import org.junit.Test;
 
 import com.saasovation.agilepm.domain.model.discussion.DiscussionAvailability;
 import com.saasovation.agilepm.domain.model.product.Product;
@@ -29,252 +32,185 @@ import com.saasovation.agilepm.domain.model.product.ProductId;
 import com.saasovation.agilepm.domain.model.product.ProductRepository;
 import com.saasovation.agilepm.domain.model.team.ProductOwnerId;
 import com.saasovation.agilepm.domain.model.tenant.TenantId;
-import com.saasovation.common.domain.model.DomainEventPublisher;
-import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBProvider;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
-public class LevelDBProductRepositoryTest extends TestCase {
+public class LevelDBProductRepositoryTest extends BaseLevelDBRepositoryTest {
 
-    private DB database;
-    private ProductRepository productRepository = new LevelDBProductRepository();
+	private ProductRepository productRepository = new LevelDBProductRepository();
 
-    public LevelDBProductRepositoryTest() {
-        super();
-    }
+	@Test
+	public void testSave() {
+		TenantId tenantId = new TenantId("T12345");
 
-    public void testSave() throws Exception {
-        TenantId tenantId = new TenantId("T12345");
+		Product product = new Product(tenantId, new ProductId("679890"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product", "My product, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product =
-                new Product(
-                        tenantId,
-                        new ProductId("679890"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product",
-                        "My product, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.save(product);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.save(product);
-        LevelDBUnitOfWork.current().commit();
+		Product savedProduct = productRepository.productOfId(product.tenantId(), product.productId());
 
-        Product savedProduct =
-                productRepository
-                    .productOfId(
-                            product.tenantId(),
-                            product.productId());
+		assertNotNull(savedProduct);
+		assertEquals(product.tenantId(), savedProduct.tenantId());
+		assertEquals(product.productId(), savedProduct.productId());
+		assertEquals(product.productOwnerId(), savedProduct.productOwnerId());
+		assertEquals("My Product", savedProduct.name());
+		assertEquals("My product, which is my product.", savedProduct.description());
+		assertEquals(DiscussionAvailability.NOT_REQUESTED, savedProduct.discussion().availability());
 
-        assertNotNull(savedProduct);
-        assertEquals(product.tenantId(), savedProduct.tenantId());
-        assertEquals(product.productId(), savedProduct.productId());
-        assertEquals(product.productOwnerId(), savedProduct.productOwnerId());
-        assertEquals("My Product", savedProduct.name());
-        assertEquals("My product, which is my product.", savedProduct.description());
-        assertEquals(DiscussionAvailability.NOT_REQUESTED, savedProduct.discussion().availability());
+		Collection<Product> savedProducts = productRepository.allProductsOfTenant(product.tenantId());
 
-        Collection<Product> savedProducts =
-                productRepository
-                    .allProductsOfTenant(product.tenantId());
+		assertFalse(savedProducts.isEmpty());
+		assertEquals(1, savedProducts.size());
+	}
 
-        assertFalse(savedProducts.isEmpty());
-        assertEquals(1, savedProducts.size());
-    }
+	@Test
+	public void testStartDiscussionInitiationSave() {
+		TenantId tenantId = new TenantId("T12345");
 
-    public void testStartDiscussionInitiationSave() throws Exception {
-        TenantId tenantId = new TenantId("T12345");
+		Product product = new Product(tenantId, new ProductId("679890"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product", "My product, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product =
-                new Product(
-                        tenantId,
-                        new ProductId("679890"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product",
-                        "My product, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		product.startDiscussionInitiation("ABCDEFGHIJ");
 
-        product.startDiscussionInitiation("ABCDEFGHIJ");
+		LevelDBUnitOfWork.start(super.getDB());
 
-        LevelDBUnitOfWork.start(this.database);
+		productRepository.save(product);
 
-        productRepository.save(product);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.current().commit();
+		Product savedProduct = productRepository.productOfDiscussionInitiationId(product.tenantId(), "ABCDEFGHIJ");
 
-        Product savedProduct =
-                productRepository
-                    .productOfDiscussionInitiationId(
-                            product.tenantId(),
-                            "ABCDEFGHIJ");
+		assertNotNull(savedProduct);
+		assertEquals(product.tenantId(), savedProduct.tenantId());
+		assertEquals(product.productId(), savedProduct.productId());
+		assertEquals(product.productOwnerId(), savedProduct.productOwnerId());
+		assertEquals("My Product", savedProduct.name());
+		assertEquals("My product, which is my product.", savedProduct.description());
+		assertEquals(DiscussionAvailability.NOT_REQUESTED, savedProduct.discussion().availability());
+	}
 
-        assertNotNull(savedProduct);
-        assertEquals(product.tenantId(), savedProduct.tenantId());
-        assertEquals(product.productId(), savedProduct.productId());
-        assertEquals(product.productOwnerId(), savedProduct.productOwnerId());
-        assertEquals("My Product", savedProduct.name());
-        assertEquals("My product, which is my product.", savedProduct.description());
-        assertEquals(DiscussionAvailability.NOT_REQUESTED, savedProduct.discussion().availability());
-    }
+	@Test
+	public void testRemove() {
+		TenantId tenantId = new TenantId("T12345");
 
-    public void testRemove() throws Exception {
-        TenantId tenantId = new TenantId("T12345");
+		Product product1 = new Product(tenantId, new ProductId("679890"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product 1", "My product 1, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product1 =
-                new Product(
-                        tenantId,
-                        new ProductId("679890"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product 1",
-                        "My product 1, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		Product product2 = new Product(tenantId, new ProductId("09876"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product 2", "My product 2, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product2 =
-                new Product(
-                        tenantId,
-                        new ProductId("09876"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product 2",
-                        "My product 2, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.save(product1);
+		productRepository.save(product2);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.save(product1);
-        productRepository.save(product2);
-        LevelDBUnitOfWork.current().commit();
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.remove(product1);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.remove(product1);
-        LevelDBUnitOfWork.current().commit();
+		Collection<Product> savedProducts = productRepository.allProductsOfTenant(tenantId);
+		assertFalse(savedProducts.isEmpty());
+		assertEquals(1, savedProducts.size());
+		assertEquals(product2.productId(), savedProducts.iterator().next().productId());
 
-        Collection<Product> savedProducts = productRepository.allProductsOfTenant(tenantId);
-        assertFalse(savedProducts.isEmpty());
-        assertEquals(1, savedProducts.size());
-        assertEquals(product2.productId(), savedProducts.iterator().next().productId());
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.remove(product2);
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.remove(product2);
-        LevelDBUnitOfWork.current().commit();
+		savedProducts = productRepository.allProductsOfTenant(tenantId);
+		assertTrue(savedProducts.isEmpty());
+	}
 
-        savedProducts = productRepository.allProductsOfTenant(tenantId);
-        assertTrue(savedProducts.isEmpty());
-    }
+	@Test
+	public void testSaveAllRemoveAll() {
+		TenantId tenantId = new TenantId("T12345");
 
-    public void testSaveAllRemoveAll() throws Exception {
-        TenantId tenantId = new TenantId("T12345");
+		Product product1 = new Product(tenantId, new ProductId("679890"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product 1", "My product 1, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product1 =
-                new Product(
-                        tenantId,
-                        new ProductId("679890"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product 1",
-                        "My product 1, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		Product product2 = new Product(tenantId, new ProductId("09876"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product 2", "My product 2, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product2 =
-                new Product(
-                        tenantId,
-                        new ProductId("09876"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product 2",
-                        "My product 2, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		Product product3 = new Product(tenantId, new ProductId("100200300"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product 3", "My product 3, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product3 =
-                new Product(
-                        tenantId,
-                        new ProductId("100200300"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product 3",
-                        "My product 3, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.saveAll(Arrays.asList(new Product[] { product1, product2, product3 }));
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.saveAll(Arrays.asList(new Product[] { product1, product2, product3 }));
-        LevelDBUnitOfWork.current().commit();
+		Collection<Product> savedProducts = productRepository.allProductsOfTenant(tenantId);
+		assertFalse(savedProducts.isEmpty());
+		assertEquals(3, savedProducts.size());
 
-        Collection<Product> savedProducts = productRepository.allProductsOfTenant(tenantId);
-        assertFalse(savedProducts.isEmpty());
-        assertEquals(3, savedProducts.size());
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.removeAll(Arrays.asList(new Product[] { product1, product3 }));
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.removeAll(Arrays.asList(new Product[] { product1, product3 }));
-        LevelDBUnitOfWork.current().commit();
+		savedProducts = productRepository.allProductsOfTenant(tenantId);
+		assertFalse(savedProducts.isEmpty());
+		assertEquals(1, savedProducts.size());
+		assertEquals(product2.productId(), savedProducts.iterator().next().productId());
 
-        savedProducts = productRepository.allProductsOfTenant(tenantId);
-        assertFalse(savedProducts.isEmpty());
-        assertEquals(1, savedProducts.size());
-        assertEquals(product2.productId(), savedProducts.iterator().next().productId());
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.removeAll(Arrays.asList(new Product[] { product2 }));
+		LevelDBUnitOfWork.current().commit();
 
-        LevelDBUnitOfWork.start(this.database);
-        productRepository.removeAll(Arrays.asList(new Product[] { product2 }));
-        LevelDBUnitOfWork.current().commit();
+		savedProducts = productRepository.allProductsOfTenant(tenantId);
+		assertTrue(savedProducts.isEmpty());
+	}
 
-        savedProducts = productRepository.allProductsOfTenant(tenantId);
-        assertTrue(savedProducts.isEmpty());
-    }
+	@Test
+	public void testConcurrentTransactions() {
+		final List<Integer> orderOfCommits = new ArrayList<Integer>();
 
-    public void testConcurrentTransactions() throws Exception {
-        final List<Integer> orderOfCommits = new ArrayList<Integer>();
+		final TenantId tenantId = new TenantId("T12345");
 
-        final TenantId tenantId = new TenantId("T12345");
+		Product product1 = new Product(tenantId, new ProductId("679890"), new ProductOwnerId(tenantId, "thepm"),
+				"My Product 1", "My product 1, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        Product product1 =
-                new Product(
-                        tenantId,
-                        new ProductId("679890"),
-                        new ProductOwnerId(tenantId, "thepm"),
-                        "My Product 1",
-                        "My product 1, which is my product.",
-                        DiscussionAvailability.NOT_REQUESTED);
+		LevelDBUnitOfWork.start(super.getDB());
+		productRepository.save(product1);
 
-        LevelDBUnitOfWork.start(database);
-        productRepository.save(product1);
+		new Thread() {
+			@Override
+			public void run() {
+				Product product2 = new Product(tenantId, new ProductId("09876"), new ProductOwnerId(tenantId, "thepm"),
+						"My Product 2", "My product 2, which is my product.", DiscussionAvailability.NOT_REQUESTED);
 
-        new Thread() {
-           @Override
-           public void run() {
-               Product product2 =
-                       new Product(
-                               tenantId,
-                               new ProductId("09876"),
-                               new ProductOwnerId(tenantId, "thepm"),
-                               "My Product 2",
-                               "My product 2, which is my product.",
-                               DiscussionAvailability.NOT_REQUESTED);
+				LevelDBUnitOfWork.start(getDB());
+				productRepository.save(product2);
+				LevelDBUnitOfWork.current().commit();
+				orderOfCommits.add(2);
+			}
+		}.start();
 
-               LevelDBUnitOfWork.start(database);
-               productRepository.save(product2);
-               LevelDBUnitOfWork.current().commit();
-               orderOfCommits.add(2);
-           }
-        }.start();
+		try {
+			Thread.sleep(250L);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
-        Thread.sleep(250L);
+		LevelDBUnitOfWork.current().commit();
+		orderOfCommits.add(1);
 
-        LevelDBUnitOfWork.current().commit();
-        orderOfCommits.add(1);
+		for (int idx = 0; idx < orderOfCommits.size(); ++idx) {
+			assertEquals(idx + 1, orderOfCommits.get(idx).intValue());
+		}
 
-        for (int idx = 0; idx < orderOfCommits.size(); ++idx) {
-            assertEquals(idx + 1, orderOfCommits.get(idx).intValue());
-        }
+		try {
+			Thread.sleep(250L);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
-        Thread.sleep(250L);
+		Collection<Product> savedProducts = productRepository.allProductsOfTenant(product1.tenantId());
 
-        Collection<Product> savedProducts =
-                productRepository.allProductsOfTenant(product1.tenantId());
+		assertFalse(savedProducts.isEmpty());
+		assertEquals(2, savedProducts.size());
+	}
 
-        assertFalse(savedProducts.isEmpty());
-        assertEquals(2, savedProducts.size());
-    }
-
-    @Override
-    protected void setUp() throws Exception {
-        DomainEventPublisher.instance().reset();
-
-        this.database = LevelDBProvider.instance().databaseFrom(LevelDBDatabasePath.agilePMPath());
-
-        LevelDBProvider.instance().purge(this.database);
-
-        super.setUp();
-    }
 }
