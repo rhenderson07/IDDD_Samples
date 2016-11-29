@@ -30,9 +30,9 @@ import com.saasovation.agilepm.domain.model.team.ProductOwnerId;
 import com.saasovation.agilepm.domain.model.tenant.TenantId;
 import com.saasovation.common.domain.model.process.ProcessId;
 
-public class ProductTest extends ProductCommonTest {
+public class ProductIntegTest extends ProductCommonTest {
 
-    public ProductTest() {
+    public ProductIntegTest() {
         super();
     }
 
