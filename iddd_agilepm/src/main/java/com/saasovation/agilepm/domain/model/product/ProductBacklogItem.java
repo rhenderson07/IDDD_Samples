@@ -20,106 +20,96 @@ import com.saasovation.agilepm.domain.model.tenant.TenantId;
 
 public class ProductBacklogItem extends Entity {
 
-    private BacklogItemId backlogItemId;
-    private int ordering;
-    private ProductId productId;
-    private TenantId tenantId;
+	private BacklogItemId backlogItemId;
+	private int ordering;
+	private ProductId productId;
+	private TenantId tenantId;
 
-    public BacklogItemId backlogItemId() {
-        return this.backlogItemId;
-    }
+	protected ProductBacklogItem() {
+		super();
+	}
 
-    public int ordering() {
-        return this.ordering;
-    }
+	protected ProductBacklogItem(TenantId aTenantId, ProductId aProductId, BacklogItemId aBacklogItemId,
+			int anOrdering) {
+	
+		this();
+	
+		this.setBacklogItemId(aBacklogItemId);
+		this.setOrdering(anOrdering);
+		this.setProductId(aProductId);
+		this.setTenantId(aTenantId);
+	}
 
-    public ProductId productId() {
-        return this.productId;
-    }
+	public BacklogItemId backlogItemId() {
+		return this.backlogItemId;
+	}
 
-    public TenantId tenantId() {
-        return this.tenantId;
-    }
+	public int ordering() {
+		return this.ordering;
+	}
 
-    @Override
-    public boolean equals(Object anObject) {
-        boolean equalObjects = false;
+	public ProductId productId() {
+		return this.productId;
+	}
 
-        if (anObject != null && this.getClass() == anObject.getClass()) {
-            ProductBacklogItem typedObject = (ProductBacklogItem) anObject;
-            equalObjects =
-                this.tenantId().equals(typedObject.tenantId()) &&
-                this.productId().equals(typedObject.productId()) &&
-                this.backlogItemId().equals(typedObject.backlogItemId());
-        }
+	public TenantId tenantId() {
+		return this.tenantId;
+	}
 
-        return equalObjects;
-    }
+	@Override
+	public boolean equals(Object anObject) {
+		boolean equalObjects = false;
 
-    @Override
-    public int hashCode() {
-        int hashCodeValue =
-            + (15389 * 97)
-            + this.tenantId().hashCode()
-            + this.productId().hashCode()
-            + this.backlogItemId().hashCode();
+		if (anObject != null && this.getClass() == anObject.getClass()) {
+			ProductBacklogItem typedObject = (ProductBacklogItem) anObject;
+			equalObjects = this.tenantId().equals(typedObject.tenantId())
+					&& this.productId().equals(typedObject.productId())
+					&& this.backlogItemId().equals(typedObject.backlogItemId());
+		}
 
-        return hashCodeValue;
-    }
+		return equalObjects;
+	}
 
-    @Override
-    public String toString() {
-        return "ProductBacklogItem [tenantId=" + tenantId
-                + ", productId=" + productId
-                + ", backlogItemId=" + backlogItemId
-                + ", ordering=" + ordering + "]";
-    }
+	@Override
+	public int hashCode() {
+		return +(15389 * 97) + this.tenantId().hashCode() + this.productId().hashCode()
+				+ this.backlogItemId().hashCode();
 
-    protected ProductBacklogItem(
-            TenantId aTenantId,
-            ProductId aProductId,
-            BacklogItemId aBacklogItemId,
-            int anOrdering) {
+	}
 
-        this();
+	@Override
+	public String toString() {
+		return "ProductBacklogItem [tenantId=" + tenantId + ", productId=" + productId + ", backlogItemId="
+				+ backlogItemId + ", ordering=" + ordering + "]";
+	}
 
-        this.setBacklogItemId(aBacklogItemId);
-        this.setOrdering(anOrdering);
-        this.setProductId(aProductId);
-        this.setTenantId(aTenantId);
-    }
+	protected void reorderFrom(BacklogItemId anId, int anOrdering) {
+		if (this.backlogItemId().equals(anId)) {
+			this.setOrdering(anOrdering);
+		} else if (this.ordering() >= anOrdering) {
+			this.setOrdering(this.ordering() + 1);
+		}
+	}
 
-    protected ProductBacklogItem() {
-        super();
-    }
+	protected void setBacklogItemId(BacklogItemId aBacklogItemId) {
+		this.assertArgumentNotNull(aBacklogItemId, "The backlog item id must be provided.");
 
-    protected void reorderFrom(BacklogItemId anId, int anOrdering) {
-        if (this.backlogItemId().equals(anId)) {
-            this.setOrdering(anOrdering);
-        } else if (this.ordering() >= anOrdering) {
-            this.setOrdering(this.ordering() + 1);
-        }
-    }
+		this.backlogItemId = aBacklogItemId;
+	}
 
-    protected void setBacklogItemId(BacklogItemId aBacklogItemId) {
-        this.assertArgumentNotNull(aBacklogItemId, "The backlog item id must be provided.");
+	protected void setOrdering(int anOrdering) {
+		this.ordering = anOrdering;
+	}
 
-        this.backlogItemId = aBacklogItemId;
-    }
+	protected void setProductId(ProductId aProductId) {
+		this.assertArgumentNotNull(aProductId, "The product id must be provided.");
 
-    protected void setOrdering(int anOrdering) {
-        this.ordering = anOrdering;
-    }
+		this.productId = aProductId;
+	}
 
-    protected void setProductId(ProductId aProductId) {
-        this.assertArgumentNotNull(aProductId, "The product id must be provided.");
+	protected void setTenantId(TenantId aTenantId) {
+		this.assertArgumentNotNull(aTenantId, "The tenant id must be provided.");
 
-        this.productId = aProductId;
-    }
-
-    protected void setTenantId(TenantId aTenantId) {
-        this.assertArgumentNotNull(aTenantId, "The tenant id must be provided.");
-
-        this.tenantId = aTenantId;
-    }
+		this.tenantId = aTenantId;
+	}
 }

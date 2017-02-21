@@ -31,127 +31,125 @@ import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBKey;
 import com.saasovation.common.port.adapter.persistence.leveldb.LevelDBUnitOfWork;
 
 @Repository
-public class LevelDBSprintRepository
-        extends AbstractLevelDBRepository
-        implements SprintRepository {
+public class LevelDBSprintRepository extends AbstractLevelDBRepository implements SprintRepository {
 
-    private static final String PRIMARY = "SPRINT#PK";
-    private static final String PRODUCT_RELEASES = "SPRINT#PR";
+	private static final String PRIMARY = "SPRINT#PK";
+	private static final String PRODUCT_RELEASES = "SPRINT#PR";
 
-    public LevelDBSprintRepository() {
-        super(LevelDBDatabasePath.agilePMPath());
-    }
+	public LevelDBSprintRepository() {
+		super(LevelDBDatabasePath.agilePMPath());
+	}
 
-    @Override
-    public Collection<Sprint> allProductSprints(TenantId aTenantId, ProductId aProductId) {
-        List<Sprint> sprints = new ArrayList<Sprint>();
+	@Override
+	public Collection<Sprint> allProductSprints(TenantId aTenantId, ProductId aProductId) {
+		List<Sprint> sprints = new ArrayList<>();
 
-        LevelDBKey productSprints = new LevelDBKey(PRODUCT_RELEASES, aTenantId.id(), aProductId.id());
+		LevelDBKey productSprints = new LevelDBKey(PRODUCT_RELEASES, aTenantId.id(), aProductId.id());
 
-        LevelDBUnitOfWork uow = LevelDBUnitOfWork.readOnly(this.database());
+		LevelDBUnitOfWork uow = LevelDBUnitOfWork.readOnly(this.database());
 
-        List<Object> keys = uow.readKeys(productSprints);
+		List<Object> keys = uow.readKeys(productSprints);
 
-        for (Object sprintId : keys) {
-            Sprint sprint = uow.readObject(sprintId.toString().getBytes(), Sprint.class);
+		for (Object sprintId : keys) {
+			Sprint sprint = uow.readObject(sprintId.toString().getBytes(), Sprint.class);
 
-            if (sprint != null) {
-                sprints.add(sprint);
-            }
-        }
+			if (sprint != null) {
+				sprints.add(sprint);
+			}
+		}
 
-        return sprints;
-    }
+		return sprints;
+	}
 
-    @Override
-    public SprintId nextIdentity() {
-        return new SprintId(UUID.randomUUID().toString().toUpperCase());
-    }
+	@Override
+	public SprintId nextIdentity() {
+		return new SprintId(UUID.randomUUID().toString().toUpperCase());
+	}
 
-    @Override
-    public Sprint sprintOfId(TenantId aTenantId, SprintId aSprintId) {
-        LevelDBKey primaryKey = new LevelDBKey(PRIMARY, aTenantId.id(), aSprintId.id());
+	@Override
+	public Sprint sprintOfId(TenantId aTenantId, SprintId aSprintId) {
+		LevelDBKey primaryKey = new LevelDBKey(PRIMARY, aTenantId.id(), aSprintId.id());
+		byte[] sprintKeyBytes = primaryKey.key().getBytes();
 
-        Sprint sprint =
-                LevelDBUnitOfWork.readOnly(this.database())
-                    .readObject(primaryKey.key().getBytes(), Sprint.class);
+		LevelDBUnitOfWork unitOfWork = LevelDBUnitOfWork.readOnly(this.database());
+		return unitOfWork.readObject(sprintKeyBytes, Sprint.class);
+	}
 
-        return sprint;
-    }
+	@Override
+	public void remove(Sprint aSprint) {
+		LevelDBKey lockKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id());
 
-    @Override
-    public void remove(Sprint aSprint) {
-        LevelDBKey lockKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id());
+		LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
 
-        LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
+		uow.lock(lockKey.key());
 
-        uow.lock(lockKey.key());
+		this.remove(aSprint, uow);
+	}
 
-        this.remove(aSprint, uow);
-    }
+	@Override
+	public void removeAll(Collection<Sprint> aSprintCollection) {
+		boolean locked = false;
 
-    @Override
-    public void removeAll(Collection<Sprint> aSprintCollection) {
-        boolean locked = false;
+		LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
 
-        LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
+		for (Sprint sprint : aSprintCollection) {
+			if (!locked) {
+				LevelDBKey lockKey = new LevelDBKey(PRIMARY, sprint.tenantId().id());
 
-        for (Sprint sprint : aSprintCollection) {
-            if (!locked) {
-                LevelDBKey lockKey = new LevelDBKey(PRIMARY, sprint.tenantId().id());
+				uow.lock(lockKey.key());
 
-                uow.lock(lockKey.key());
+				locked = true;
+			}
 
-                locked = true;
-            }
+			this.remove(sprint, uow);
+		}
+	}
 
-            this.remove(sprint, uow);
-        }
-    }
+	@Override
+	public void save(Sprint aSprint) {
+		LevelDBKey lockKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id());
 
-    @Override
-    public void save(Sprint aSprint) {
-        LevelDBKey lockKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id());
+		LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
 
-        LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
+		uow.lock(lockKey.key());
 
-        uow.lock(lockKey.key());
+		this.save(aSprint, uow);
+	}
 
-        this.save(aSprint, uow);
-    }
+	@Override
+	public void saveAll(Collection<Sprint> aSprintCollection) {
+		boolean locked = false;
 
-    @Override
-    public void saveAll(Collection<Sprint> aSprintCollection) {
-        boolean locked = false;
+		LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
 
-        LevelDBUnitOfWork uow = LevelDBUnitOfWork.current();
+		for (Sprint sprint : aSprintCollection) {
+			if (!locked) {
+				LevelDBKey lockKey = new LevelDBKey(PRIMARY, sprint.tenantId().id());
 
-        for (Sprint sprint : aSprintCollection) {
-            if (!locked) {
-                LevelDBKey lockKey = new LevelDBKey(PRIMARY, sprint.tenantId().id());
+				uow.lock(lockKey.key());
 
-                uow.lock(lockKey.key());
+				locked = true;
+			}
 
-                locked = true;
-            }
+			this.save(sprint, uow);
+		}
+	}
 
-            this.save(sprint, uow);
-        }
-    }
+	private void remove(Sprint aSprint, LevelDBUnitOfWork aUoW) {
+		LevelDBKey primaryKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id(), aSprint.sprintId().id());
+		aUoW.remove(primaryKey);
 
-    private void remove(Sprint aSprint, LevelDBUnitOfWork aUoW) {
-        LevelDBKey primaryKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id(), aSprint.sprintId().id());
-        aUoW.remove(primaryKey);
+		LevelDBKey productSprints = new LevelDBKey(primaryKey, PRODUCT_RELEASES, aSprint.tenantId().id(),
+				aSprint.productId().id());
+		aUoW.removeKeyReference(productSprints);
+	}
 
-        LevelDBKey productSprints = new LevelDBKey(primaryKey, PRODUCT_RELEASES, aSprint.tenantId().id(), aSprint.productId().id());
-        aUoW.removeKeyReference(productSprints);
-    }
+	private void save(Sprint aSprint, LevelDBUnitOfWork aUoW) {
+		LevelDBKey primaryKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id(), aSprint.sprintId().id());
+		aUoW.write(primaryKey, aSprint);
 
-    private void save(Sprint aSprint, LevelDBUnitOfWork aUoW) {
-        LevelDBKey primaryKey = new LevelDBKey(PRIMARY, aSprint.tenantId().id(), aSprint.sprintId().id());
-        aUoW.write(primaryKey, aSprint);
-
-        LevelDBKey productSprints = new LevelDBKey(primaryKey, PRODUCT_RELEASES, aSprint.tenantId().id(), aSprint.productId().id());
-        aUoW.updateKeyReference(productSprints);
-    }
+		LevelDBKey productSprints = new LevelDBKey(primaryKey, PRODUCT_RELEASES, aSprint.tenantId().id(),
+				aSprint.productId().id());
+		aUoW.updateKeyReference(productSprints);
+	}
 }
